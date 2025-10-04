@@ -1,9 +1,10 @@
-﻿using HotelReservationSystemAPI.Domain.CommonrResponse;
+﻿using HotelReservationSystemAPI.Application.CommonResponse;
+
 using System.Net;
 
 namespace HotelReservationSystemAPI.Domain.ValueObject
 {
-    public sealed class Role : IEquatable<Role>
+    public sealed class RoleValue : IEquatable<RoleValue>
     {
         public string Name { get; private set; } = string.Empty;
 
@@ -12,21 +13,21 @@ namespace HotelReservationSystemAPI.Domain.ValueObject
         "Guest", "HotelAdmin", "SuperAdmin"
     };
 
-        private Role(string name) => Name = name;
+        private RoleValue(string name) => Name = name;
 
-        public static APIResponse<Role> Create(string name)
+        public static APIResponse<RoleValue> Create(string name)
         {
             if (string.IsNullOrWhiteSpace(name) || !AllowedRoles.Contains(name))
-                return APIResponse<Role>.Fail(HttpStatusCode.BadRequest, $"Invalid role: {name}");
+                return APIResponse<RoleValue>.Fail(HttpStatusCode.BadRequest, $"Invalid role: {name}");
 
-            return APIResponse<Role>.Success(new Role(name), "Role created successfully");
+            return APIResponse<RoleValue>.Success(new RoleValue(name), "Role created successfully");
         }
 
         public bool IsAdmin() => Name is "HotelAdmin" or "SuperAdmin";
         public bool IsGuest() => Name == "Guest";
 
-        public bool Equals(Role? other) => other is not null && Name == other.Name;
-        public override bool Equals(object? obj) => Equals(obj as Role);
+        public bool Equals(RoleValue? other) => other is not null && Name == other.Name;
+        public override bool Equals(object? obj) => Equals(obj as RoleValue);
         public override int GetHashCode() => Name.GetHashCode();
         public override string ToString() => Name;
     }

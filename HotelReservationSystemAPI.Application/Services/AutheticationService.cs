@@ -1,16 +1,18 @@
 ﻿
-using HotelReservationSystemAPI.Application.CommonrResponse;
-using HotelReservationSystemAPI.Application.Dto_s;
+using HotelReservationAPI.Infrastructure.Repositories.Interface;
+using HotelReservationSystemAPI.Application.CommonResponse;
+using HotelReservationSystemAPI.Application.DTO_s;
+using Microsoft.Extensions.Logging;
 using System.Net;
 
 namespace HotelReservationSystemAPI.Application.Services
 {
-    public class AuntheticationService
+    public class AutheticationService
     {
         private readonly IUserRepository _userRepository;
-        private readonly ILogger<AuntheticationService> _logger;
+        private readonly ILogger<AutheticationService> _logger;
 
-        public AuntheticationService(IUserRepository userRepository, ILogger<AuntheticationService> logger)
+        public AutheticationService(IUserRepository userRepository, ILogger<AutheticationService> logger)
         {
             _userRepository = userRepository;
             _logger = logger;

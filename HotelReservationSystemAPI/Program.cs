@@ -1,4 +1,11 @@
 
+using HotelReservationAPI.Infrastructure.Persistence;
+using HotelReservationAPI.Infrastructure.Repositories.Implementation;
+using HotelReservationAPI.Infrastructure.Repositories.Interface;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
+
 namespace HotelReservationSystemAPI
 {
     public class Program
@@ -8,11 +15,19 @@ namespace HotelReservationSystemAPI
             var builder = WebApplication.CreateBuilder(args);
 
             // Add services to the container.
-
             builder.Services.AddControllers();
-            // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
+
+            // DataBase AUTHDb
+
+            builder.Services.AddDbContext<UserIdentityDB>(options =>
+            options.UseSqlServer(configuration.GetConnectionString("HotelReservationAuthDb")));
+
+            // services 
+            builder.Services.AddScoped<IUserRepository,UserRepositroy>();
+            builder.Services.AddScoped<IEventStore,EventStore>();
+            builder.Services.AddScoped<IRoleRepository,RoleRepository>();
 
             var app = builder.Build();
 
@@ -24,6 +39,8 @@ namespace HotelReservationSystemAPI
             }
 
             app.UseHttpsRedirection();
+
+            app.UseAuthentication();
 
             app.UseAuthorization();
 

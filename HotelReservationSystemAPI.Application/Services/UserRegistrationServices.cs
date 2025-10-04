@@ -1,6 +1,8 @@
 ﻿
+using HotelReservationAPI.Infrastructure.Repositories.Interface;
 using HotelReservationSystemAPI.Application.CommonResponse;
 using HotelReservationSystemAPI.Application.DTO_s;
+using Microsoft.Extensions.Logging;
 using System.Net;
 
 namespace HotelReservationSystemAPI.Application.Services
@@ -25,7 +27,7 @@ namespace HotelReservationSystemAPI.Application.Services
         }
 
         public async Task<APIResponse<UserResponseDto>> RegisterAsync(
-            RegisterUserDto dto,
+            UserRegisterDto dto,
             Func<string, string> hashFunction)
         {
             _logger.LogInformation("Attempting to register user with email {Email}", dto.Email);

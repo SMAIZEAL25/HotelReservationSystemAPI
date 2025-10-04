@@ -7,6 +7,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HotelReservationSystemAPI",
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HotelReservationSystemAPI.Application", "Application\HotelReservationSystemAPI.Application.csproj", "{0D2EC9ED-F5FF-4EBB-AB1D-437A743D7EB3}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HotelReservationAPI.Infrastructure", "HotelReservationAPI.Infrastructure\HotelReservationAPI.Infrastructure.csproj", "{8938AA60-321D-4463-AF0C-1FF5F18C141B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HotelReservationSystemApi.Domain", "HotelReservationSystemApi.Domain\HotelReservationSystemApi.Domain.csproj", "{402920B6-5122-4326-8FBE-FD8975B9F0BE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +25,14 @@ Global
 		{0D2EC9ED-F5FF-4EBB-AB1D-437A743D7EB3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0D2EC9ED-F5FF-4EBB-AB1D-437A743D7EB3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0D2EC9ED-F5FF-4EBB-AB1D-437A743D7EB3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8938AA60-321D-4463-AF0C-1FF5F18C141B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8938AA60-321D-4463-AF0C-1FF5F18C141B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8938AA60-321D-4463-AF0C-1FF5F18C141B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8938AA60-321D-4463-AF0C-1FF5F18C141B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{402920B6-5122-4326-8FBE-FD8975B9F0BE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{402920B6-5122-4326-8FBE-FD8975B9F0BE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{402920B6-5122-4326-8FBE-FD8975B9F0BE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{402920B6-5122-4326-8FBE-FD8975B9F0BE}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

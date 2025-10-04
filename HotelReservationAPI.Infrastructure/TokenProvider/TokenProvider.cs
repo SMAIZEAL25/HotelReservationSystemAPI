@@ -4,9 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace HotelReservationSystemAPI.Application.DTO_s
+namespace HotelReservationAPI.Infrastructure.TokenProvider
 {
-    internal class UserRegisterDto
+    internal class TokenProvider
     {
     }
 }
