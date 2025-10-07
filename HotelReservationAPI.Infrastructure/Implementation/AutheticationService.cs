@@ -1,5 +1,6 @@
 ﻿
-using HotelReservationAPI.Infrastructure.Repositories.Interface;
+using HotelReservationAPI.Domain.Interface;
+
 using HotelReservationSystemAPI.Application.CommonResponse;
 using HotelReservationSystemAPI.Application.DTO_s;
 using Microsoft.Extensions.Logging;

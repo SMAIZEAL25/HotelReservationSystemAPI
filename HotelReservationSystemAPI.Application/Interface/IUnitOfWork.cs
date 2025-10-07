@@ -4,9 +4,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace HotelReservationAPI.Infrastructure.Repositories.Interface
+namespace HotelReservationAPI.Domain.Interface
 {
     public interface IUnitOfWork
     {
+        Task<int> SaveChangesAsync(CancellationToken cancellationToken);
     }
 }

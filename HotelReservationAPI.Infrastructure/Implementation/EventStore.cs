@@ -1,11 +1,11 @@
-﻿using HotelReservationAPI.Infrastructure.Repositories.Interface;
+﻿using HotelReservationAPI.Domain.Interface;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace HotelReservationAPI.Infrastructure.Repositories.Implementation
+namespace HotelReservationAPI.Infrastructure.Implementation
 {
     public class EventStore : IEventStore
     {

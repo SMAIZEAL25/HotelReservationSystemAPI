@@ -1,95 +1,146 @@
-﻿using HotelReservationAPI.Infrastructure.Repositories.Interface;
-using HotelReservationSystemAPI.Application.CommonResponse;
-using HotelReservationSystemAPI.Application.DTO_s;
-using HotelReservationSystemAPI.Domain.Events;
+﻿
 using HotelReservationSystemAPI.Domain.ValueObject;
-using MediatR;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Caching.Distributed;
 using System.Net;
 using System.Text.Json;
 
+
 namespace HotelReservationSystemAPI.Domain.Entities
 {
-    public class User : IdentityUser<Guid>
+    public partial class User : IdentityUser<Guid>
     {
+        // Domain properties
         public string FullName { get; private set; } = string.Empty;
-        public Email EmailValueObject { get; private set; } = default!;
-        public Password PasswordValueObject { get; private set; } = default!;
-        public RoleValue RoleValueObject { get; private set; } = default!;
+        public EmailVO EmailValueObject { get; private set; } = default!;
+        public PasswordVO PasswordValueObject { get; private set; } = default!;
+        public UserRole Role { get; private set; }
+        public bool EmailConfirmed { get; private set; } = false;
         public DateTime CreatedAt { get; private set; } = DateTime.UtcNow;
 
         private User() { } // EF Core
 
-        public static async Task<APIResponse<User>> CreateAsync(
-            UserRegisterDto dto,
-            UserManager<User> userManager,
-            IPasswordHasher<User> passwordHasher,
-            IEventStore eventStore,
-            IMediator mediator,
-            IDistributedCache cache,
-            ILoggerService logger)
+        // Factory method - Returns Result<UserCreationData>
+        public static Result<UserCreationData> Create(
+            string fullName,
+            string email,
+            string plainPassword,
+            UserRole role,
+            Func<string, string> hashFunction)
         {
+            // Validate full name
+            if (string.IsNullOrWhiteSpace(fullName))
+                return Result<UserCreationData>.Failure("Full name is required");
+
             // Validate email
-            var emailResult = Email.Create(dto.Email);
+            var emailResult = EmailVO.Create(email);
             if (!emailResult.IsSuccess)
-                return APIResponse<User>.Fail(HttpStatusCode.BadRequest, emailResult.Message);
+                return Result<UserCreationData>.Failure(emailResult.Message);
 
             // Validate password
-            var passwordResult = Password.Create(dto.Password);
+            var passwordResult = PasswordVO.Create(plainPassword, hashFunction);
             if (!passwordResult.IsSuccess)
-                return APIResponse<User>.Fail(HttpStatusCode.BadRequest, passwordResult.Message);
-
-            // Validate role
-            var roleResult = RoleValue.Create(dto.Role);
-            if (!roleResult.IsSuccess)
-                return APIResponse<User>.Fail(HttpStatusCode.BadRequest, roleResult.Message);
+                return Result<UserCreationData>.Failure(passwordResult.Message);
 
             // Create user instance
             var user = new User
             {
                 Id = Guid.NewGuid(),
-                FullName = dto.FullName,
-                UserName = dto.Email,
-                Email = dto.Email,
+                FullName = fullName,
+                UserName = email,
                 EmailValueObject = emailResult.Data!,
                 PasswordValueObject = passwordResult.Data!,
-                RoleValueObject = roleResult.Data!,
+                PasswordHash = passwordResult.Data!.HashedValue,
+                Role = role,
+                EmailConfirmed = false,
                 CreatedAt = DateTime.UtcNow
             };
 
-            // Save user in identity
-            var createResult = await userManager.CreateAsync(user, dto.Password);
-            if (!createResult.Succeeded)
-            {
-                var errors = string.Join(", ", createResult.Errors.Select(e => e.Description));
-                logger.LogError($"User creation failed for {dto.Email}: {errors}");
-                return APIResponse<User>.Fail(HttpStatusCode.BadRequest, $"User creation failed: {errors}");
-            }
+            // Set IdentityUser.Email property
+            user.Email = email;
 
-            // Add role
-            var addRoleResult = await userManager.AddToRoleAsync(user, dto.Role);
-            if (!addRoleResult.Succeeded)
-            {
-                logger.LogError($"Role assignment failed for {dto.Email}");
-                await userManager.DeleteAsync(user);
-                var errors = string.Join(", ", addRoleResult.Errors.Select(e => e.Description));
-                return APIResponse<User>.Fail(HttpStatusCode.BadRequest, $"Role assignment failed: {errors}");
-            }
+            // Create domain event
+            var domainEvent = new UserRegisteredEvent(user.Id, email, DateTime.UtcNow);
 
-            // Save registration event
-            var userEvent = new UserRegisteredEvent(user.Id, dto.Email, DateTime.UtcNow);
-            await eventStore.SaveEventAsync(userEvent);
-            await mediator.Publish(userEvent);
+            // Return with UserCreationData wrapper
+            var creationData = new UserCreationData(user, domainEvent);
+            return Result<UserCreationData>.Success(creationData, "User created successfully");
+        }
 
-            // Cache role (optional optimization)
-            await cache.SetStringAsync($"role:{dto.Role}",
-                JsonSerializer.Serialize(roleResult.Data),
-                new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(12) });
+        // This method handles Email confirmations
+        public OperationResult ConfirmEmail()
+        {
+            if (EmailConfirmed)
+                return OperationResult.Failure("Email is already confirmed");
 
-            logger.LogInformation($"User {dto.Email} registered successfully at {DateTime.UtcNow}");
+            EmailConfirmed = true;
+            return OperationResult.Success("Email confirmed successfully");
+        }
 
-            return APIResponse<User>.Success(user, "User created successfully");
+        // This method handles Updating of profile
+        public OperationResult UpdateProfile(string fullName, string email)
+        {
+            // Validate full name
+            if (string.IsNullOrWhiteSpace(fullName))
+                return OperationResult.Failure("Full name is required");
+
+            // Validate email
+            var emailResult = EmailVO.Create(email);
+            if (!emailResult.IsSuccess)
+                return OperationResult.Failure(emailResult.Message);
+
+            // Update properties
+            FullName = fullName;
+            EmailValueObject = emailResult.Data!;
+            UserName = email;
+            base.Email = emailResult.Data!.Value;
+
+            return OperationResult.Success("Profile updated successfully");
+        }
+
+        // This method handles the ChangePassword
+        public OperationResult ChangePassword(
+            string newPlainPassword,
+            Func<string, string> hashFunction)
+        {
+            var passwordResult = PasswordVO.Create(newPlainPassword, hashFunction);
+            if (!passwordResult.IsSuccess)
+                return OperationResult.Failure(passwordResult.Message);
+
+            PasswordValueObject = passwordResult.Data!;
+            PasswordHash = passwordResult.Data!.HashedValue;
+
+            return OperationResult.Success("Password changed successfully");
         }
     }
+
+    // ===== DATA WRAPPER =====
+    public class UserCreationData
+    {
+        public User User { get; }
+        public UserRegisteredEvent DomainEvent { get; }
+
+        public UserCreationData(User user, UserRegisteredEvent domainEvent)
+        {
+            User = user;
+            DomainEvent = domainEvent;
+        }
+    }
+
+    // ===== ENUMS =====
+    public enum UserRole
+    {
+        Guest = 0,
+        HotelAdmin = 1,
+        SuperAdmin = 2
+    }
+
+    // ===== DOMAIN EVENTS =====
+    public record UserRegisteredEvent(Guid UserId, string Email, DateTime OccurredAt);
 }
+
+    
+
+
+
+
