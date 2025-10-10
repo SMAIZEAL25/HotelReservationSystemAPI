@@ -1,4 +1,4 @@
-﻿using HotelReservationAPI.Domain.Interface;
+﻿
 using HotelReservationSystemAPI.Domain.ValueObject;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
@@ -9,13 +9,12 @@ using System.Text.Json;
 
 namespace HotelReservationSystemAPI.Domain.Entities
 {
-    public class Role : IdentityRole<Guid>
+    public partial class Role : IdentityRole<Guid>
     {
         public string Description { get; private set; } = string.Empty;
         public DateTime CreatedAt { get; private set; } = DateTime.UtcNow;
         public DateTime? UpdatedAt { get; private set; }
-        private Role() { } // EF Core
-                           // Factory method (matches User.Create pattern)
+        private Role() { } 
         public static Result<RoleCreationData> Create(string roleName, string description = "")
         {
             // Validation using RoleValue
@@ -58,7 +57,6 @@ namespace HotelReservationSystemAPI.Domain.Entities
                 DomainEvent = domainEvent;
             }
         }
-        public record RoleCreatedEvent(Guid RoleId, string RoleName, DateTime OccurredAt);
     }
 
 }

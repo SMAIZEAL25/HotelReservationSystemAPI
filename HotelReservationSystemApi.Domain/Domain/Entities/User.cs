@@ -1,4 +1,5 @@
 ﻿
+using HotelReservationSystemAPI.Domain.Events;
 using HotelReservationSystemAPI.Domain.ValueObject;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Caching.Distributed;
@@ -134,9 +135,6 @@ namespace HotelReservationSystemAPI.Domain.Entities
         HotelAdmin = 1,
         SuperAdmin = 2
     }
-
-    // ===== DOMAIN EVENTS =====
-    public record UserRegisteredEvent(Guid UserId, string Email, DateTime OccurredAt);
 }
 
     

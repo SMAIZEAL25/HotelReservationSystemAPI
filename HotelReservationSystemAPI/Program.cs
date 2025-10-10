@@ -1,12 +1,14 @@
 
 using HotelReservationAPI.Domain.Interface;
 using HotelReservationAPI.Infrastructure.Implementation;
+using HotelReservationSystemAPI.Domain.Events;
 using Humanizer;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Serilog;
+using System.Reflection;
 using System.Threading.RateLimiting;
 using UserIdentity.Infrastructure.Persistence;
 
@@ -23,6 +25,15 @@ namespace HotelReservationSystemAPI
             builder.Services.AddControllers();
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
+
+
+            // Register MediatR and scan all relevant assemblies
+            builder.Services.AddMediatR(cfg =>
+                cfg.RegisterServicesFromAssemblies(
+                    Assembly.GetExecutingAssembly(),
+                    typeof(UserRegisteredEvent).Assembly
+                )
+            );
 
             // DataBase AUTHDb
 

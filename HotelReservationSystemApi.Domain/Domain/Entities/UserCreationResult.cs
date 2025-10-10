@@ -2,6 +2,8 @@
 
 
 
+using HotelReservationSystemAPI.Domain.Events;
+
 namespace HotelReservationSystemAPI.Domain.Entities
 {
     public partial class User
