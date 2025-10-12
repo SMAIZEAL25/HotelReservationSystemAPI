@@ -1,56 +1,30 @@
-﻿
-using Microsoft.AspNetCore.Identity;
-using Microsoft.Extensions.Caching.Distributed;
-using System.Diagnostics.Metrics;
-using System.Net;
+﻿using System;
 using System.Text.RegularExpressions;
 
 namespace HotelReservationSystemAPI.Domain.ValueObject
 {
-
-
-    public class EmailVO : IEquatable<EmailVO>
+    public class EmailVO : ValueObject
     {
-        public string Value { get; private set; }
+        public string Value { get; private set; } = string.Empty;
 
-        // Private constructor with parameter
-        private EmailVO(string value)
-        {
-            Value = value;
-        }
+        protected EmailVO() { }
 
-        // Factory method returns generic Result<T>
+        private EmailVO(string value) => Value = value.ToLowerInvariant().Trim();
+
         public static Result<EmailVO> Create(string email)
         {
             if (string.IsNullOrWhiteSpace(email))
                 return Result<EmailVO>.Failure("Email cannot be empty");
 
-            if (!System.Text.RegularExpressions.Regex.IsMatch(
-                email,
-                @"^[^@\s]+@[^@\s]+\.[^@\s]+$"))
+            if (!Regex.IsMatch(email, @"^[^@\s]+@[^@\s]+\.[^@\s]+$"))
                 return Result<EmailVO>.Failure("Invalid email format");
 
-            return Result<EmailVO>.Success(new EmailVO(email), "Email created successfully");
+            return Result<EmailVO>.Success(new EmailVO(email));
         }
 
-        // Equality implementation
-        public override bool Equals(object? obj)
-            => obj is EmailVO other && Value == other.Value;
-
-        public bool Equals(EmailVO? other)
-            => other is not null && Value == other.Value;
-
-        public override int GetHashCode()
-            => Value.GetHashCode();
-
-        public override string ToString()
-            => Value;
-
-        // Operators for convenience
-        public static bool operator ==(EmailVO? left, EmailVO? right)
-            => Equals(left, right);
-
-        public static bool operator !=(EmailVO? left, EmailVO? right)
-            => !Equals(left, right);
+        protected override IEnumerable<object> GetEqualityComponents()
+        {
+            yield return Value;
+        }
     }
 }

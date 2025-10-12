@@ -19,7 +19,7 @@ namespace HotelReservationSystemAPI.Application.Services
             _logger = logger;
         }
 
-        public async Task SendEmailAsync(string to, string subject, string body)
+        public async Task SendConfirmationEmailAsync(string to, string subject, string body)
         {
             try
             {

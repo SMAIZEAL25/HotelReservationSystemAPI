@@ -1,6 +1,6 @@
-﻿using HotelReservationSystemAPI.Application.Events;
+﻿using HotelReservationSystemAPI.Domain.Events;
 
-namespace HotelReservationSystemAPI.Application.Entities
+namespace HotelReservationSystemAPI.Domain.Entities
 {
 
 

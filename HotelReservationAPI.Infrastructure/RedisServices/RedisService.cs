@@ -13,6 +13,11 @@ namespace HotelReservationAPI.Infrastructure.TokenProvider
     public class RedisCacheService
     {
         private readonly IDistributedCache _cache;
+        private static readonly JsonSerializerOptions _jsonOptions = new()
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            WriteIndented = false
+        };
 
         public RedisCacheService(IDistributedCache cache)
         {
@@ -26,14 +31,16 @@ namespace HotelReservationAPI.Infrastructure.TokenProvider
                 AbsoluteExpirationRelativeToNow = expiry ?? TimeSpan.FromMinutes(30)
             };
 
-            var jsonData = JsonSerializer.Serialize(value);
+            var jsonData = JsonSerializer.Serialize(value, _jsonOptions);
             await _cache.SetStringAsync(key, jsonData, options);
         }
 
         public async Task<T?> GetAsync<T>(string key)
         {
             var jsonData = await _cache.GetStringAsync(key);
-            return jsonData is null ? default : JsonSerializer.Deserialize<T>(jsonData);
+            return jsonData is null
+                ? default
+                : JsonSerializer.Deserialize<T>(jsonData, _jsonOptions);
         }
 
         public async Task RemoveAsync(string key)
@@ -42,4 +49,4 @@ namespace HotelReservationAPI.Infrastructure.TokenProvider
         }
     }
 }
-}
+

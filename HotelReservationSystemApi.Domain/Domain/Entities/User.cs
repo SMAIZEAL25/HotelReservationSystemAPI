@@ -9,19 +9,17 @@ using System.Text.Json;
 
 namespace HotelReservationSystemAPI.Domain.Entities
 {
-    public partial class User : IdentityUser<Guid>
+    public class User : IdentityUser<Guid>
     {
-        // Domain properties
         public string FullName { get; private set; } = string.Empty;
         public EmailVO EmailValueObject { get; private set; } = default!;
-        public PasswordVO PasswordValueObject { get; private set; } = default!;
-        public UserRole Role { get; private set; }
-        public bool EmailConfirmed { get; private set; } = false;
+        public PasswordVO? PasswordValueObject { get; private set; }
+        public UserRole Role { get; private set; } = UserRole.Guest;
         public DateTime CreatedAt { get; private set; } = DateTime.UtcNow;
+        public bool EmailConfirmed { get; private set; } = false;
 
-        private User() { } // EF Core
+        private User() { } // EF
 
-        // Factory method - Returns Result<UserCreationData>
         public static Result<UserCreationData> Create(
             string fullName,
             string email,
@@ -29,93 +27,71 @@ namespace HotelReservationSystemAPI.Domain.Entities
             UserRole role,
             Func<string, string> hashFunction)
         {
-            // Validate full name
             if (string.IsNullOrWhiteSpace(fullName))
                 return Result<UserCreationData>.Failure("Full name is required");
 
-            // Validate email
             var emailResult = EmailVO.Create(email);
             if (!emailResult.IsSuccess)
-                return Result<UserCreationData>.Failure(emailResult.Message);
+                return Result<UserCreationData>.Failure(emailResult.Error ?? "Invalid email");
 
-            // Validate password
             var passwordResult = PasswordVO.Create(plainPassword, hashFunction);
             if (!passwordResult.IsSuccess)
-                return Result<UserCreationData>.Failure(passwordResult.Message);
+                return Result<UserCreationData>.Failure(passwordResult.Error ?? "Invalid password");
 
-            // Create user instance
             var user = new User
             {
                 Id = Guid.NewGuid(),
                 FullName = fullName,
                 UserName = email,
-                EmailValueObject = emailResult.Data!,
-                PasswordValueObject = passwordResult.Data!,
-                PasswordHash = passwordResult.Data!.HashedValue,
+                Email = email,
+                EmailValueObject = emailResult.Value,
+                PasswordValueObject = passwordResult.Value,
+                PasswordHash = passwordResult.Value.HashedValue,
                 Role = role,
                 EmailConfirmed = false,
                 CreatedAt = DateTime.UtcNow
             };
 
-            // Set IdentityUser.Email property
-            user.Email = email;
-
-            // Create domain event
-            var domainEvent = new UserRegisteredEvent(user.Id, email, DateTime.UtcNow);
-
-            // Return with UserCreationData wrapper
-            var creationData = new UserCreationData(user, domainEvent);
-            return Result<UserCreationData>.Success(creationData, "User created successfully");
+            var domainEvent = new UserRegisteredEvent(user.Id, email);
+            return Result<UserCreationData>.Success(new UserCreationData(user, domainEvent));
         }
 
-        // This method handles Email confirmations
         public OperationResult ConfirmEmail()
         {
             if (EmailConfirmed)
-                return OperationResult.Failure("Email is already confirmed");
-
+                return OperationResult.Failure("Email already confirmed");
             EmailConfirmed = true;
             return OperationResult.Success("Email confirmed successfully");
         }
 
-        // This method handles Updating of profile
         public OperationResult UpdateProfile(string fullName, string email)
         {
-            // Validate full name
             if (string.IsNullOrWhiteSpace(fullName))
                 return OperationResult.Failure("Full name is required");
 
-            // Validate email
             var emailResult = EmailVO.Create(email);
             if (!emailResult.IsSuccess)
-                return OperationResult.Failure(emailResult.Message);
+                return OperationResult.Failure(emailResult.Error ?? "Invalid email");
 
-            // Update properties
             FullName = fullName;
-            EmailValueObject = emailResult.Data!;
+            EmailValueObject = emailResult.Value;
+            Email = email;
             UserName = email;
-            base.Email = emailResult.Data!.Value;
-
             return OperationResult.Success("Profile updated successfully");
         }
 
-        // This method handles the ChangePassword
-        public OperationResult ChangePassword(
-            string newPlainPassword,
-            Func<string, string> hashFunction)
+        public OperationResult ChangePassword(string newPassword, Func<string, string> hashFunction)
         {
-            var passwordResult = PasswordVO.Create(newPlainPassword, hashFunction);
+            var passwordResult = PasswordVO.Create(newPassword, hashFunction);
             if (!passwordResult.IsSuccess)
-                return OperationResult.Failure(passwordResult.Message);
+                return OperationResult.Failure(passwordResult.Error ?? "Invalid password");
 
-            PasswordValueObject = passwordResult.Data!;
-            PasswordHash = passwordResult.Data!.HashedValue;
-
+            PasswordValueObject = passwordResult.Value;
+            PasswordHash = passwordResult.Value.HashedValue;
             return OperationResult.Success("Password changed successfully");
         }
     }
 
-    // ===== DATA WRAPPER =====
     public class UserCreationData
     {
         public User User { get; }
@@ -128,16 +104,16 @@ namespace HotelReservationSystemAPI.Domain.Entities
         }
     }
 
-    // ===== ENUMS =====
     public enum UserRole
     {
-        Guest = 0,
-        HotelAdmin = 1,
-        SuperAdmin = 2
+        Guest,
+        HotelAdmin,
+        SuperAdmin
     }
+
 }
 
-    
+
 
 
 

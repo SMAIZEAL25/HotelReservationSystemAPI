@@ -6,9 +6,9 @@ namespace HotelReservationAPI.Domain.Interface
     public interface IUserRepository
     {
         Task AddAsync(User user);
-        Task<UserDto?> GetByEmailAsync(string email);
-        Task<UserDto?> GetByIdAsync(Guid id);
-        Task<List<UserDto>> ListAsync();
+        Task<UserRegisterDto?> GetByEmailAsync(string email);
+        Task<UserRegisterDto?> GetByIdAsync(Guid id);
+        Task<List<UserRegisterDto>> ListAsync();
         Task SaveEventAsync(object domainEvent);
         Task UpdateAsync(User user);
     }

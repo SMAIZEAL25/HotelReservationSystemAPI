@@ -9,8 +9,10 @@ using System.Threading.Tasks;
 namespace HotelReservationSystemAPI.Application.Interface
 {
 
-    //You can later replace this with RabbitMQ, Kafka,
-    //or Azure Service Bus without changing your app logic — thanks to the IEventBus abstraction.
+    // This is an application-level pub/sub system —
+    // it lets different parts of your app react to events without coupling them together.
+    // Later, you can swap it out for RabbitMQ, Kafka, or Azure Service Bus by writing a different
+    // implementation of IEventBus.
     public class InMemoryEventBus : IEventBus
     {
         private static readonly ConcurrentBag<Func<object, Task>> _subscribers = new();

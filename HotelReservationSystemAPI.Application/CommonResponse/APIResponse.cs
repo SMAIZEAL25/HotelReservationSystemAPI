@@ -18,9 +18,9 @@ namespace HotelReservationSystemAPI.Application.CommonResponse
         }
 
         public static APIResponse<T> Success(T data, string message = "Operation successful")
-            => new APIResponse<T>(true, HttpStatusCode.OK, data, message);
+            => new(true, HttpStatusCode.OK, data, message);
 
         public static APIResponse<T> Fail(HttpStatusCode statusCode, string message)
-            => new APIResponse<T>(false, statusCode, default, message);
+            => new(false, statusCode, default, message);
     }
 }

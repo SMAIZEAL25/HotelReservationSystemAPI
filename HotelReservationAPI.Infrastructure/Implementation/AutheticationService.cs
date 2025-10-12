@@ -1,45 +1,70 @@
-﻿
-using HotelReservationAPI.Domain.Interface;
-
+﻿using HotelReservationAPI.Domain.Interface;
 using HotelReservationSystemAPI.Application.CommonResponse;
 using HotelReservationSystemAPI.Application.DTO_s;
+using HotelReservationSystemAPI.Application.Interface;
+using HotelReservationSystemAPI.Domain.Entities;
+using HotelReservationSystemAPI.Domain.ValueObject;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using System.Net;
 
 namespace HotelReservationSystemAPI.Application.Services
 {
-    public class AutheticationService
+    public class AuthenticationService
     {
-        private readonly IUserRepository _userRepository;
-        private readonly ILogger<AutheticationService> _logger;
+        private readonly UserManager<User> _userManager;
+        private readonly ITokenService _tokenService;
+        private readonly ILogger<AuthenticationService> _logger;
 
-        public AutheticationService(IUserRepository userRepository, ILogger<AutheticationService> logger)
+        public AuthenticationService(
+            UserManager<User> userManager,
+            ITokenService tokenService,
+            ILogger<AuthenticationService> logger)
         {
-            _userRepository = userRepository;
+            _userManager = userManager;
+            _tokenService = tokenService;
             _logger = logger;
         }
 
-        public async Task<APIResponse<UserResponseDto>> Authentication(string email, string password, Func<string, string, bool> verifyFunction)
+        public async Task<APIResponse<LoginResponseDto>> LoginAsync(UserLoginDto loginDto)
         {
-            _logger.LogInformation("Attempting login for {Email}", email);
+            _logger.LogInformation("Attempting login for {Email}", loginDto.Email);
 
-            var user = await _userRepository.GetByemailAsync(new Email(email));
-            if (user == null || !user.password.Verify(password, verifyFunction))
+            // ✅ Validate Email via Value Object
+            var emailResult = EmailVO.Create(loginDto.Email);
+            if (!emailResult.IsSuccess)
+                return APIResponse<LoginResponseDto>.Fail(HttpStatusCode.BadRequest, emailResult.Message);
+
+            var user = await _userManager.FindByEmailAsync(emailResult.Data.Value);
+            if (user == null)
             {
-                _logger.LogWarning("Login failed for {Email}", email);
-                return APIResponse<UserResponseDto>.Fail(HttpStatusCode.Unauthorized, "Invalid credentials");
-
+                _logger.LogWarning("User not found for {Email}", loginDto.Email);
+                return APIResponse<LoginResponseDto>.Fail(HttpStatusCode.Unauthorized, "Invalid credentials");
             }
 
-            _logger.LogInformation("Login Successful for {userId}", user.Id);
+            // ✅ Verify password using ASP.NET Identity
+            var passwordValid = await _userManager.CheckPasswordAsync(user, loginDto.Password);
+            if (!passwordValid)
+            {
+                _logger.LogWarning("Invalid password for {Email}", loginDto.Email);
+                return APIResponse<LoginResponseDto>.Fail(HttpStatusCode.Unauthorized, "Invalid credentials");
+            }
 
-            return APIResponse<UserResponseDto>.Success(new UserResponseDto
-            {                
+            // ✅ Generate JWT Tokens
+            var accessToken = _tokenService.GenerateAccessToken(user);
+            var refreshToken = _tokenService.GenerateRefreshToken();
+
+            var response = new LoginResponseDto
+            {
                 FullName = user.FullName,
-                Email = user.Email.Value,
-                Role = user.Role.Name,
-                CreatedAt = user.CreatedAt
-            }, "Login successful");
+                Email = user.Email,
+                Role = user.Role,
+                AccessToken = accessToken,
+                RefreshToken = refreshToken
+            };
+
+            _logger.LogInformation("Login successful for {UserId}", user.Id);
+            return APIResponse<LoginResponseDto>.Success(response, "Login successful");
         }
     }
 }

@@ -2,8 +2,7 @@
 {
     public interface IEventStore
     {
-        Task SaveEventAsync<T>(T @event) where T : class;
-
-        Task<IEnumerable<T>> GetEventsAsync<T>(Guid aggregateId);
+        Task SaveEventAsync<TEvent>(TEvent @event) where TEvent : class;
+        Task<IEnumerable<TEvent>> GetEventsAsync<TEvent>(Guid aggregateId) where TEvent : class;
     }
 }

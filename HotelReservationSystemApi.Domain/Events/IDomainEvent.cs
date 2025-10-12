@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace HotelReservationSystemAPI.Application.Events
+namespace HotelReservationSystemAPI.Domain.Events
 {
     public interface IDomainEvent : INotification
     {

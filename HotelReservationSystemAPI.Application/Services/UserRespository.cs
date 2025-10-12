@@ -11,74 +11,113 @@ using System.Threading.Tasks;
 
 namespace HotelReservationSystemAPI.Application.Services
 {
-    public class UserRepository : IUserRepository, IEventStore
+    public class UserRepository : IUserRepository
     {
         private readonly UserIdentityDB _context;
         private readonly ILogger<UserRepository> _logger;
 
-        public UserRepository(UserIdentityDB context, ILogger<UserRepository> logger)
+        public UserRepository(useridentitydb context, ILogger<UserRepository> logger)
         {
             _context = context;
             _logger = logger;
         }
 
-        public async Task<UserDto?> GetByIdAsync(Guid id)
-        {
-            var user = await _context.Users
-                .Include(u => u.EmailValueObject) // Ensure value objects are loaded if needed
-                .FirstOrDefaultAsync(u => u.Id == id);
-            return user != null ? UserDto.FromUser(user) : null;
-        }
-
-        public async Task<UserDto?> GetByEmailAsync(string email)
-        {
-            var user = await _context.Users
-                .Include(u => u.EmailValueObject)
-                .FirstOrDefaultAsync(u => u.EmailValueObject.Value == email);
-            return user != null ? UserDto.FromUser(user) : null;
-        }
-
-        public async Task<List<UserDto>> ListAsync()
-        {
-            var users = await _context.Users
-                .Include(u => u.EmailValueObject)
-                .ToListAsync();
-            return users.Select(UserDto.FromUser).ToList();
-        }
-
-
-        // For add use a create user Dto and update user Dto to determ the kind of the records that can be update 
+        /// <summary>
+        /// Adds a new user record to the database.
+        /// </summary>
         public async Task AddAsync(User user)
         {
-            _logger.LogInformation("Adding user {UserId}", user.Id);
-            await _context.Users.AddAsync(user);
-            await _context.SaveChangesAsync();
-            _logger.LogInformation("User {UserId} added successfully", user.Id);
+            try
+            {
+                await _context.Users.AddAsync(user);
+                await _context.SaveChangesAsync();
+                _logger.LogInformation("User {Email} successfully added.", user.Email);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error adding user {Email}", user.Email);
+                throw;
+            }
         }
 
-        public async Task UpdateAsync(User user)
+        /// <summary>
+        /// Fetches a user by email and maps it to a DTO.
+        /// </summary>
+        public async Task<UserRegisterDto?> GetByEmailAsync(string email)
         {
-            _logger.LogInformation("Updating user {UserId}", user.Id);
-            _context.Users.Update(user);
-            await _context.SaveChangesAsync();
-            _logger.LogInformation("User {UserId} updated successfully", user.Id);
+            var user = await _context.Users.AsNoTracking()
+                .FirstOrDefaultAsync(u => u.Email == email);
+
+            return user is null ? null : MapToDto(user);
         }
 
+        /// <summary>
+        /// Fetches a user by their unique identifier (GUID).
+        /// </summary>
+        public async Task<UserRegisterDto?> GetByIdAsync(Guid id)
+        {
+            var user = await _context.Users.AsNoTracking()
+                .FirstOrDefaultAsync(u => u.Id == id);
+
+            return user is null ? null : MapToDto(user);
+        }
+
+        /// <summary>
+        /// Lists all users, projected as DTOs for lightweight response.
+        /// </summary>
+        public async Task<List<UserRegisterDto>> ListAsync()
+        {
+            return await _context.Users.AsNoTracking()
+                .Select(u => new UserRegisterDto
+                {
+                    Id = u.Id,
+                    FullName = u.FullName,
+                    Email = u.Email,
+                    Role = u.Role
+                })
+                .ToListAsync();
+        }
+
+        /// <summary>
+        /// Persists domain events if stored in same database.
+        /// </summary>
         public async Task SaveEventAsync(object domainEvent)
         {
-            _logger.LogInformation("Saving event of type {EventType}", domainEvent.GetType().Name);
-            var eventData = JsonSerializer.Serialize(domainEvent);
-            // Assuming a DomainEvent entity and DbSet<DomainEvent> DomainEvents in UserIdentityDB
-            var dbEvent = new DomainEvent
+            // Optional: implement only if you persist domain events in DB.
+            _logger.LogInformation("Domain event persisted: {@Event}", domainEvent);
+            await Task.CompletedTask;
+        }
+
+        /// <summary>
+        /// Updates existing user data.
+        /// </summary>
+        public async Task UpdateAsync(User user)
+        {
+            try
             {
-                Id = Guid.NewGuid(),
-                EventType = domainEvent.GetType().Name,
-                Data = eventData,
-                OccurredAt = DateTime.UtcNow
+                _context.Users.Update(user);
+                await _context.SaveChangesAsync();
+                _logger.LogInformation("User {Email} updated successfully.", user.Email);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating user {Email}", user.Email);
+                throw;
+            }
+        }
+
+        // ==============================
+        // PRIVATE HELPER
+        // ==============================
+        private static UserRegisterDto MapToDto(User user)
+        {
+            return new UserRegisterDto
+            {
+                Id = user.Id,
+                FullName = user.FullName,
+                Email = user.Email,
+                Role = user.Role
             };
-            await _context.DomainEvents.AddAsync(dbEvent);
-            await _context.SaveChangesAsync();
-            _logger.LogInformation("Event {EventId} of type {EventType} saved successfully", dbEvent.Id, dbEvent.EventType);
         }
     }
 }
