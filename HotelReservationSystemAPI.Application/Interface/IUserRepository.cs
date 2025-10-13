@@ -1,7 +1,8 @@
-﻿using HotelReservationSystemAPI.Application.DTO_s;
+﻿
+using HotelReservationSystemAPI.Application.DTO_s;
 using HotelReservationSystemAPI.Domain.Entities;
 
-namespace HotelReservationAPI.Domain.Interface
+namespace HotelReservationAPI.Application.Interface
 {
     public interface IUserRepository
     {

@@ -1,4 +1,5 @@
 ﻿using HotelReservationSystemAPI.Domain.Entities;
+using HotelReservationSystemAPI.Domain.Events;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
@@ -7,8 +8,10 @@ namespace UserIdentity.Infrastructure.Persistence
 {
     public class UserIdentityDB : IdentityDbContext<User, Role, Guid>
     {
-        public DbSet<User> Users { get; set; } // Explicitly exposed for queries
+        public DbSet<User> Users { get; set; }
         public DbSet<Role> Roles { get; set; }
+
+        public DbSet<DomainEvent> DomainEvents { get; set; }
 
         public UserIdentityDB(DbContextOptions<UserIdentityDB> options)
             : base(options) { }
@@ -16,11 +19,28 @@ namespace UserIdentity.Infrastructure.Persistence
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
+            // DomainEvent Configuration
+            builder.Entity<DomainEvent>(entity =>
+            {
+                entity.ToTable("DomainEvents");
 
-            // ==============================
-            // USER ENTITY CONFIGURATION
-            // ==============================
-            builder.Entity<User>(entity =>
+                entity.HasIndex(e => e.AggregateId);
+                entity.HasIndex(e => e.EventType);
+                entity.HasIndex(e => e.OccurredAt);
+
+                entity.Property(e => e.Data)
+                      .HasMaxLength(4000)  // Adjust for JSON size
+                      .IsRequired();
+
+                entity.Property(e => e.EventType)
+                      .HasMaxLength(256)
+                      .IsRequired();
+            });
+        
+        // ==============================
+        // USER ENTITY CONFIGURATION
+        // ==============================
+        builder.Entity<User>(entity =>
             {
                 entity.ToTable("Users");
 
@@ -60,10 +80,9 @@ namespace UserIdentity.Infrastructure.Persistence
                       .IsRequired();
                 });
 
-                // Optional: if you model Role as a Value Object inside User
-                // (if not, skip this block)
+                // Role as enum
                 entity.Property(u => u.Role)
-                      .HasConversion<int>() // Store Enum as integer
+                      .HasConversion<int>()
                       .IsRequired();
             });
 
@@ -89,35 +108,35 @@ namespace UserIdentity.Infrastructure.Persistence
                 entity.Property(r => r.UpdatedAt)
                       .IsRequired(false);
 
-                // Seed roles with fixed GUIDs for consistency across migrations
-                // Using anonymous types to handle private setters
+                // Seed roles with fixed GUIDs and dates (use fixed dates for migration reproducibility)
+                var now = new DateTime(2025, 10, 12);  // Current date for seeding
                 entity.HasData(
                     new
                     {
-                        Id = new Guid("844eb56d-ea3a-4f71-abd5-3f648ed9d61b"), // Fixed GUID for Guest
+                        Id = new Guid("844eb56d-ea3a-4f71-abd5-3f648ed9d61b"),
                         Name = "Guest",
                         NormalizedName = "GUEST",
                         Description = "Default user role",
-                        CreatedAt = DateTime.UtcNow,
-                        ConcurrencyStamp = "fixed-concurrency-stamp-guest" // Fixed value for reproducibility
+                        CreatedAt = now,
+                        ConcurrencyStamp = "fixed-concurrency-stamp-guest"
                     },
                     new
                     {
-                        Id = new Guid("a1ea0823-516d-4441-9a40-16e8b7649171"), // Fixed GUID for HotelAdmin
+                        Id = new Guid("a1ea0823-516d-4441-9a40-16e8b7649171"),
                         Name = "HotelAdmin",
                         NormalizedName = "HOTELADMIN",
                         Description = "Administrator for hotel branch",
-                        CreatedAt = DateTime.UtcNow,
-                        ConcurrencyStamp = "fixed-concurrency-stamp-hoteladmin" // Fixed value for reproducibility
+                        CreatedAt = now,
+                        ConcurrencyStamp = "fixed-concurrency-stamp-hoteladmin"
                     },
                     new
                     {
-                        Id = new Guid("34f40151-388b-434f-8b34-910ef9c6098b"), // Fixed GUID for SuperAdmin
+                        Id = new Guid("34f40151-388b-434f-8b34-910ef9c6098b"),
                         Name = "SuperAdmin",
                         NormalizedName = "SUPERADMIN",
                         Description = "Global administrator with all permissions",
-                        CreatedAt = DateTime.UtcNow,
-                        ConcurrencyStamp = "fixed-concurrency-stamp-superadmin" // Fixed value for reproducibility
+                        CreatedAt = now,
+                        ConcurrencyStamp = "fixed-concurrency-stamp-superadmin"
                     }
                 );
             });

@@ -1,87 +1,80 @@
-﻿using HotelReservationAPI.Domain.Interface;
-using HotelReservationSystemAPI.Application.Events;
+﻿using HotelReservationAPI.Application.Interface;
+using HotelReservationSystemAPI.Domain.Entities;
+using HotelReservationSystemAPI.Domain.Events;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
 using UserIdentity.Infrastructure.Persistence;
 
-namespace HotelReservationAPI.Infrastructure.Implementation
-{ 
-        public class EventStore : IEventStore
-        {
-        private readonly UserIdentityDB _context;
-        private readonly ILogger<EventStore> _logger;
+public class EventStore : IEventStore
+{
+    private readonly UserIdentityDB _context;
+    private readonly ILogger<EventStore> _logger;
 
-        public EventStore(UserIdentityDB context, ILogger<EventStore> logger)
+    private static readonly JsonSerializerOptions _jsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        WriteIndented = false
+    };
+
+    public EventStore(UserIdentityDB context, ILogger<EventStore> logger)
+    {
+        _context = context;
+        _logger = logger;
+    }
+
+    public async Task SaveEventAsync<T>(T @event) where T : IDomainEvent
+    {
+        try
         {
-            _context = context;
-            _logger = logger;
+            var eventData = JsonSerializer.Serialize(@event, _jsonOptions);
+            var dbEvent = new DomainEvent
+            {
+                Id = Guid.NewGuid(),
+                AggregateId = @event.AggregateId,  // Use interface prop
+                EventType = typeof(T).Name,
+                Data = eventData,
+                OccurredAt = @event.OccurredAt  // Use interface prop
+            };
+
+            await _context.DomainEvents.AddAsync(dbEvent);
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Event {EventType} saved successfully for AggregateId {AggregateId}",
+                typeof(T).Name, dbEvent.AggregateId);
         }
-
-        public async Task SaveEventAsync<T>(T @event) where T : class
+        catch (Exception ex)
         {
-            try
-            {
-                var eventData = JsonSerializer.Serialize(@event);
-                var dbEvent = new DomainEvent
-                {
-                    Id = Guid.NewGuid(),
-                    AggregateId = GetAggregateId(@event),
-                    EventType = typeof(T).Name,
-                    Data = eventData,
-                    OccurredAt = DateTime.UtcNow
-                };
-
-                await _context.DomainEvents.AddAsync(dbEvent);
-                await _context.SaveChangesAsync();
-
-                _logger.LogInformation("Event {EventType} saved successfully for AggregateId {AggregateId}",
-                    typeof(T).Name, dbEvent.AggregateId);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to save event {EventType}", typeof(T).Name);
-                throw;
-            }
+            _logger.LogError(ex, "Failed to save event {EventType}", typeof(T).Name);
+            throw;
         }
+    }
 
-        public async Task<IEnumerable<T>> GetEventsAsync<T>(Guid aggregateId)
+    public async Task<IEnumerable<T>> GetEventsAsync<T>(Guid aggregateId) where T : IDomainEvent
+    {
+        try
         {
-            try
-            {
-                var storedEvents = await _context.DomainEvents
-                    .Where(e => e.AggregateId == aggregateId && e.EventType == typeof(T).Name)
-                    .OrderBy(e => e.OccurredAt)
-                    .ToListAsync();
+            var storedEvents = await _context.DomainEvents
+                .Where(e => e.AggregateId == aggregateId && e.EventType == typeof(T).Name)
+                .OrderBy(e => e.OccurredAt)
+                .ToListAsync();
 
-                if (!storedEvents.Any())
-                {
-                    _logger.LogWarning("No events found for AggregateId {AggregateId}", aggregateId);
-                }
-
-                return storedEvents.Select(e =>
-                    JsonSerializer.Deserialize<T>(e.Data) ?? throw new InvalidOperationException("Event deserialization failed"));
-            }
-            catch (Exception ex)
+            if (!storedEvents.Any())
             {
-                _logger.LogError(ex, "Error retrieving events for AggregateId {AggregateId}", aggregateId);
-                throw;
+                _logger.LogWarning("No events found for AggregateId {AggregateId}", aggregateId);
+                return Enumerable.Empty<T>();
             }
+
+            var events = storedEvents.Select(e =>
+                JsonSerializer.Deserialize<T>(e.Data, _jsonOptions) ?? throw new InvalidOperationException("Event deserialization failed"))
+                .Where(e => e != null)!;  // Filter nulls
+
+            return events;
         }
-
-        private static Guid GetAggregateId<T>(T @event)
+        catch (Exception ex)
         {
-            // Convention: all domain events must expose AggregateId or Id property
-            var prop = typeof(T).GetProperty("UserId") ?? typeof(T).GetProperty("AggregateId") ?? typeof(T).GetProperty("Id");
-            if (prop == null)
-                throw new InvalidOperationException($"Event type {typeof(T).Name} must contain an AggregateId, UserId, or Id property.");
-
-            return (Guid)prop.GetValue(@event)!;
+            _logger.LogError(ex, "Error retrieving events for AggregateId {AggregateId}", aggregateId);
+            throw;
         }
     }
 }
-

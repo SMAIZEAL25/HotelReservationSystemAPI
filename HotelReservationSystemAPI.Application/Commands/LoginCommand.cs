@@ -1,21 +1,7 @@
-﻿using HotelReservationSystemAPI.Application.CommonResponse;
-using HotelReservationSystemAPI.Application.DTO_s;
+﻿// LoginCommand.cs
+using HotelReservationSystemAPI.Application.CommonResponse;
 using MediatR;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace HotelReservationSystemAPI.Application.Commands
-{
-    public class LoginCommand : IRequest<APIResponse<AuthResponseDto>>
-    {
-        public UserLoginDto LoginDto { get; }
+namespace HotelReservationSystemAPI.Application.Commands;
 
-        public LoginCommand(UserLoginDto dto)
-        {
-            LoginDto = dto;
-        }
-    }
-}
+public record LoginCommand(UserLoginDto LoginDto) : IRequest<APIResponse<LoginResponseDto>>;

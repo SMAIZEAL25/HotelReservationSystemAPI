@@ -1,4 +1,4 @@
-﻿using HotelReservationAPI.Domain.Interface;
+﻿
 using HotelReservationSystemAPI.Application.CommonResponse;
 using HotelReservationSystemAPI.Application.DTO_s;
 using HotelReservationSystemAPI.Application.Interface;
@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using System.Net;
 
-namespace HotelReservationSystemAPI.Application.Services
+namespace HotelReservationSystemAPI.Infrastructure.Implementation
 {
     public class AuthenticationService
     {
@@ -33,9 +33,9 @@ namespace HotelReservationSystemAPI.Application.Services
             // ✅ Validate Email via Value Object
             var emailResult = EmailVO.Create(loginDto.Email);
             if (!emailResult.IsSuccess)
-                return APIResponse<LoginResponseDto>.Fail(HttpStatusCode.BadRequest, emailResult.Message);
+                return APIResponse<LoginResponseDto>.Fail(HttpStatusCode.BadRequest, emailResult.Error ?? "Invalid email format");
 
-            var user = await _userManager.FindByEmailAsync(emailResult.Data.Value);
+            var user = await _userManager.FindByEmailAsync(emailResult.Value.Value);  // Fixed: Value.Value (Result.Value is EmailVO, EmailVO.Value is string)
             if (user == null)
             {
                 _logger.LogWarning("User not found for {Email}", loginDto.Email);
@@ -58,7 +58,7 @@ namespace HotelReservationSystemAPI.Application.Services
             {
                 FullName = user.FullName,
                 Email = user.Email,
-                Role = user.Role,
+                Role = user.Role.ToString(),  // Ensure string conversion
                 AccessToken = accessToken,
                 RefreshToken = refreshToken
             };

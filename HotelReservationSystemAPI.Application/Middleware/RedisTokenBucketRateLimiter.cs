@@ -1,4 +1,4 @@
-﻿using HotelReservationAPI.Infrastructure.TokenProvider;
+﻿
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using System;
@@ -8,7 +8,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 
-namespace HotelReservationAPI.Infrastructure.MiddleWare
+namespace HotelReservationAPI.Application.MiddleWare
 {
     /// <summary>
     /// This ratelimiter class uses the token bucket alogrithm to thrott users base on their ip address and user id
@@ -19,7 +19,7 @@ namespace HotelReservationAPI.Infrastructure.MiddleWare
         private readonly ILogger<RedisTokenBucketRateLimiter> _logger;
 
         private readonly int _maxTokens;
-        private readonly double _refillRatePerSecond; // tokens/second
+        private readonly double _refillRatePerSecond;
         private readonly TimeSpan _expiry;
 
         public RedisTokenBucketRateLimiter(
@@ -40,11 +40,9 @@ namespace HotelReservationAPI.Infrastructure.MiddleWare
         {
             string key = $"ratelimit:{userId}:{ipAddress}";
 
-            // Retrieve existing bucket state
             var bucket = await _cacheService.GetAsync<TokenBucketState>(key)
                          ?? new TokenBucketState { Tokens = _maxTokens, LastRefill = DateTime.UtcNow };
 
-            // Calculate refill
             double elapsedSeconds = (DateTime.UtcNow - bucket.LastRefill).TotalSeconds;
             double refill = elapsedSeconds * _refillRatePerSecond;
 

@@ -1,4 +1,4 @@
-﻿using HotelReservationSystemAPI.Application.Entities;
+﻿using HotelReservationSystemAPI.Domain.Entities;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using System;
@@ -7,7 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace HotelReservationSystemAPI.Application.Eventhandlers
+namespace HotelReservationSystemAPI.Domain.Eventhandlers
 {
     public class RoleCreatedEventHandler : INotificationHandler<RoleCreatedEvent>
     {
@@ -21,7 +21,7 @@ namespace HotelReservationSystemAPI.Application.Eventhandlers
         public Task Handle(RoleCreatedEvent notification, CancellationToken cancellationToken)
         {
             _logger.LogInformation("✅ Role created event received: {RoleId} | {RoleName} | {OccurredAt}",
-                notification.RoleId, notification.RoleName, notification.OccurredAt);
+                notification.RoleId, notification.Name, notification.OccurredAt);
 
             // Example: sync with external identity provider or audit log
             return Task.CompletedTask;

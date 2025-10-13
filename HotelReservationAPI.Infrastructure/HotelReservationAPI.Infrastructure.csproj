@@ -17,6 +17,7 @@
 		<PackageReference Include="StackExchange.Redis" Version="2.7.33" />
 		<PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.0" />
 		<PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.14.0" />
+		<PackageReference Include="MailKit" Version="4.7.1" />
 	</ItemGroup>
 
 

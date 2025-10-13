@@ -34,18 +34,14 @@ namespace HotelReservationSystemAPI.Controller
                 : StatusCode((int)response.StatusCode, response);
         }
 
-
         [HttpPost("login")]
-        [AllowAnonymous]
         public async Task<IActionResult> Login([FromBody] UserLoginDto dto)
         {
             var command = new LoginCommand(dto);
-            var result = await _mediator.Send(command);
-
-            if (!result.IsSuccess)
-                return StatusCode((int)result.StatusCode, result);
-
-            return Ok(result);
+            var response = await _mediator.Send(command);
+            return response.IsSuccess
+                ? Ok(response)
+                : Unauthorized(response); // Or StatusCode((int)response.StatusCode, response)
         }
     }
 }

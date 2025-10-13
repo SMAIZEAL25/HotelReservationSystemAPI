@@ -1,46 +1,69 @@
-﻿using HotelReservationSystemAPI.Domain.ValueObject;
+﻿using HotelReservationSystemAPI.Domain.Entities;
+using HotelReservationSystemAPI.Domain.ValueObject;
 using Microsoft.AspNetCore.Identity;
+using System.Xml.Linq;
 
-namespace HotelReservationSystemAPI.Domain.Entities
+public class Role : IdentityRole<Guid>
 {
-    public partial class Role : IdentityRole<Guid>
+    public string Description { get; private set; } = string.Empty;
+    public DateTime CreatedAt { get; private set; } = DateTime.UtcNow;
+    public DateTime? UpdatedAt { get; private set; }
+
+    // EF Core private constructor
+    private Role() { }
+
+    private Role(string name, string description)
     {
-        public string Description { get; private set; } = string.Empty;
-        public DateTime CreatedAt { get; private set; } = DateTime.UtcNow;
-        public DateTime? UpdatedAt { get; private set; }
+        Id = Guid.NewGuid();
+        Name = name;
+        NormalizedName = name.ToUpperInvariant();
+        Description = description;
+        CreatedAt = DateTime.UtcNow;
+        ConcurrencyStamp = Guid.NewGuid().ToString();
+    }
 
-        private Role() { }
+    /// <summary>
+    /// Creates a new role and returns both the Role entity and a domain event.
+    /// </summary>
+    public static Result<RoleCreationData> Create(string roleName, string description = "")
+    {
+        var roleValueResult = RoleValue.Create(roleName);
+        if (!roleValueResult.IsSuccess)
+            return Result<RoleCreationData>.Failure(roleValueResult.Message ?? "Invalid role name");
 
-        public static Result<Role> Create(string roleName, string description = "")
-        {
-            var roleValueResult = RoleValue.Create(roleName);
-            if (!roleValueResult.IsSuccess)
-                return Result<Role>.Failure(roleValueResult.Message);
+        var role = new Role(roleName, description);
+        var domainEvent = new RoleCreatedEvent(role.Id, role.Name!);
 
-            var role = new Role
-            {
-                Id = Guid.NewGuid(),
-                Name = roleName,
-                NormalizedName = roleName.ToUpperInvariant(),
-                Description = description,
-                CreatedAt = DateTime.UtcNow
-            };
+        var creationData = new RoleCreationData(role, domainEvent);
+        return Result<RoleCreationData>.Success(creationData, "Role created successfully");
+    }
 
-            return Result<Role>.Success(role, "Role created successfully");
-        }
+    /// <summary>
+    /// Updates role name and description with validation.
+    /// </summary>
+    public OperationResult Update(string roleName, string description)
+    {
+        var roleValueResult = RoleValue.Create(roleName);
+        if (!roleValueResult.IsSuccess)
+            return OperationResult.Failure(roleValueResult.Message);
 
-        public OperationResult UpdateRole(string roleName, string description)
-        {
-            var roleValueResult = RoleValue.Create(roleName);
-            if (!roleValueResult.IsSuccess)
-                return OperationResult.Failure(roleValueResult.Message);
+        Name = roleName;
+        NormalizedName = roleName.ToUpperInvariant();
+        Description = description;
+        UpdatedAt = DateTime.UtcNow;
 
-            Name = roleName;
-            NormalizedName = roleName.ToUpperInvariant();
-            Description = description;
-            UpdatedAt = DateTime.UtcNow;
+        return OperationResult.Success("Role updated successfully");
+    }
+}
 
-            return OperationResult.Success("Role updated successfully");
-        }
+public class RoleCreationData
+{
+    public Role Role { get; }
+    public RoleCreatedEvent DomainEvent { get; }
+
+    public RoleCreationData(Role role, RoleCreatedEvent domainEvent)
+    {
+        Role = role;
+        DomainEvent = domainEvent;
     }
 }

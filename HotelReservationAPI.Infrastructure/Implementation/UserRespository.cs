@@ -1,6 +1,7 @@
-﻿using HotelReservationAPI.Domain.Interface;
+﻿using HotelReservationAPI.Application.Interface;
 using HotelReservationSystemAPI.Application.DTO_s;
 using HotelReservationSystemAPI.Domain.Entities;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -8,6 +9,7 @@ using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using UserIdentity.Infrastructure.Persistence;
 
 namespace HotelReservationSystemAPI.Application.Services
 {
@@ -16,7 +18,7 @@ namespace HotelReservationSystemAPI.Application.Services
         private readonly UserIdentityDB _context;
         private readonly ILogger<UserRepository> _logger;
 
-        public UserRepository(useridentitydb context, ILogger<UserRepository> logger)
+        public UserRepository(UserIdentityDB context, ILogger<UserRepository> logger)
         {
             _context = context;
             _logger = logger;

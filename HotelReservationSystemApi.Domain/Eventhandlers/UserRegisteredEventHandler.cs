@@ -1,4 +1,4 @@
-﻿using HotelReservationSystemAPI.Application.Events;
+﻿using HotelReservationSystemAPI.Domain.Events;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using System;
@@ -7,11 +7,12 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace HotelReservationSystemAPI.Application.Eventhandlers
+namespace HotelReservationSystemAPI.Domain.Eventhandlers
 {
     public class UserRegisteredEventHandler : INotificationHandler<UserRegisteredEvent>
     {
         private readonly ILogger<UserRegisteredEventHandler> _logger;
+        // Inject other services (e.g., IEmailService)
 
         public UserRegisteredEventHandler(ILogger<UserRegisteredEventHandler> logger)
         {
@@ -20,10 +21,12 @@ namespace HotelReservationSystemAPI.Application.Eventhandlers
 
         public Task Handle(UserRegisteredEvent notification, CancellationToken cancellationToken)
         {
-            _logger.LogInformation("✅ User registered event received: {UserId} | {Email} | {OccurredAt}",
-                notification.UserId, notification.Email, notification.OccurredAt);
+            _logger.LogInformation("Handling UserRegisteredEvent: EventId={EventId}, OccurredAt={OccurredAt}, UserId={UserId}, Email={Email}",
+                notification.EventId, notification.OccurredAt, notification.UserId, notification.Email);
 
-            // Example: trigger welcome email, audit log, or analytics hook
+            // Side effect: e.g., SendWelcomeEmail(notification.Email)
+            // Or integrate with other contexts via _eventBus
+
             return Task.CompletedTask;
         }
     }

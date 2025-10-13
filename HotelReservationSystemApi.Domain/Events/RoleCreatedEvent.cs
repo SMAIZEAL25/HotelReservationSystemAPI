@@ -4,11 +4,20 @@ namespace HotelReservationSystemAPI.Domain.Entities
 {
 
 
-    public record RoleCreatedEvent(Guid RoleId, string RoleName) : IDomainEvent
+    public class RoleCreatedEvent : IDomainEvent
     {
-        public Guid EventId { get; init; } = Guid.NewGuid();
-        public DateTime OccurredAt { get; init; } = DateTime.UtcNow;
+        public Guid EventId { get; } = Guid.NewGuid();
+        public DateTime OccurredAt { get; } = DateTime.UtcNow;
+        public Guid RoleId { get; }
+        public string Name { get; }
+
+        public RoleCreatedEvent(Guid roleId, string name)
+        {
+            RoleId = roleId;
+            Name = name;
+        }
     }
 }
+
 
 

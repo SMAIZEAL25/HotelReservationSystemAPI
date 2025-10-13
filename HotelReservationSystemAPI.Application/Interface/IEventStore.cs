@@ -1,4 +1,4 @@
-﻿namespace HotelReservationAPI.Domain.Interface
+﻿namespace HotelReservationAPI.Application.Interface
 {
     public interface IEventStore
     {

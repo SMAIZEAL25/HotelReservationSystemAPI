@@ -26,8 +26,4 @@
 		<ProjectReference Include="..\HotelReservationSystemAPI.Application\HotelReservationSystemAPI.Application.csproj" />
 		<ProjectReference Include="..\HotelReservationAPI.Infrastructure\HotelReservationAPI.Infrastructure.csproj" />
 	</ItemGroup>
-
-	<ItemGroup>
-	  <Folder Include="Filters\" />
-	</ItemGroup>
 </Project>

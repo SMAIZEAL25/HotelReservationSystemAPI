@@ -9,5 +9,6 @@ namespace HotelReservationSystemAPI.Application.Interface
     public interface IEmailService
     {
         Task SendConfirmationEmailAsync(string to, string subject, string body);
+        // task SetEmailConfirmationTokenAsync
     }
 }
