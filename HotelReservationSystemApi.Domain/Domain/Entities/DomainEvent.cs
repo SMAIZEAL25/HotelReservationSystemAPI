@@ -21,5 +21,5 @@ public class DomainEvent
     public string Data { get; set; } = string.Empty;  // JSON-serialized event payload
 
     [Required]
-    public DateTime OccurredAt { get; set; } = DateTime.UtcNow;
+    public DateTime OccurredAt { get; set; } = DateTime.UtcNow; // added for temporary ordering 
 }

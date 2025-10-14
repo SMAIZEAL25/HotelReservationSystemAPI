@@ -1,4 +1,5 @@
 ﻿
+using HotelReservationAPI.Application.Interface;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -6,7 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace HotelReservationSystemAPI.Domain.Interface
+namespace HotelReservationSystemAPI.Application.Interface
 {
     public class InMemoryEventStore : IEventStore
     {

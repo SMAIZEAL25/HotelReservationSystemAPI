@@ -31,7 +31,7 @@ public class EventStore : IEventStore
             var dbEvent = new DomainEvent
             {
                 Id = Guid.NewGuid(),
-                AggregateId = @event.AggregateId,  // Use interface prop
+                AggregateId = @event.EventId,  // Use interface prop
                 EventType = typeof(T).Name,
                 Data = eventData,
                 OccurredAt = @event.OccurredAt  // Use interface prop

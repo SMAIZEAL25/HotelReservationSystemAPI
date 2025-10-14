@@ -3,12 +3,6 @@ using HotelReservationSystemAPI.Application.DTO_s;
 using HotelReservationSystemAPI.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Text.Json;
-using System.Threading.Tasks;
 using UserIdentity.Infrastructure.Persistence;
 
 namespace HotelReservationSystemAPI.Application.Services
@@ -75,7 +69,7 @@ namespace HotelReservationSystemAPI.Application.Services
                     Id = u.Id,
                     FullName = u.FullName,
                     Email = u.Email,
-                    Role = u.Role
+                    Role = u.Role.ToString()
                 })
                 .ToListAsync();
         }
@@ -118,7 +112,7 @@ namespace HotelReservationSystemAPI.Application.Services
                 Id = user.Id,
                 FullName = user.FullName,
                 Email = user.Email,
-                Role = user.Role
+                Role = user.Role.ToString()
             };
         }
     }

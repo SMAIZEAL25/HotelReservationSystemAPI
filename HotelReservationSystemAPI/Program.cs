@@ -8,7 +8,6 @@ using HotelReservationSystemAPI.Application.Interface;
 using HotelReservationSystemAPI.Application.Services;
 using HotelReservationSystemAPI.Domain.Entities;
 using HotelReservationSystemAPI.Domain.Events;
-using HotelReservationSystemAPI.Domain.Interface;
 using HotelReservationSystemAPI.Infrastructure.Implementation;
 using HotelReservationSystemAPI.Infrastructure.Services;
 using MediatR;

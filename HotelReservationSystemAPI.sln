@@ -5,7 +5,7 @@ VisualStudioVersion = 17.14.36429.23
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HotelReservationSystemAPI", "HotelReservationSystemAPI\HotelReservationSystemAPI.csproj", "{626BF028-44D9-491A-8F59-6C0B876CF2AB}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HotelReservationAPI.Infrastructure", "HotelReservationAPI.Infrastructure\HotelReservationAPI.Infrastructure.csproj", "{8938AA60-321D-4463-AF0C-1FF5F18C141B}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HotelReservationSystemAPI.Infrastructure", "HotelReservationAPI.Infrastructure\HotelReservationSystemAPI.Infrastructure.csproj", "{8938AA60-321D-4463-AF0C-1FF5F18C141B}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HotelReservationSystemAPI.Domain", "HotelReservationSystemApi.Domain\HotelReservationSystemAPI.Domain.csproj", "{402920B6-5122-4326-8FBE-FD8975B9F0BE}"
 EndProject

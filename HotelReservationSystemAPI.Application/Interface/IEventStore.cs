@@ -1,8 +1,10 @@
-﻿namespace HotelReservationAPI.Application.Interface
+﻿using HotelReservationSystemAPI.Domain.Events;
+
+namespace HotelReservationAPI.Application.Interface
 {
     public interface IEventStore
     {
-        Task SaveEventAsync<TEvent>(TEvent @event) where TEvent : class;
-        Task<IEnumerable<TEvent>> GetEventsAsync<TEvent>(Guid aggregateId) where TEvent : class;
+        Task SaveEventAsync<TEvent>(TEvent @event) where TEvent : IDomainEvent;
+        Task<IEnumerable<TEvent>> GetEventsAsync<TEvent>(Guid aggregateId) where TEvent : IDomainEvent;
     }
 }

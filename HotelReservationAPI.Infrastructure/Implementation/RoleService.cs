@@ -1,4 +1,4 @@
-﻿using HotelReservationAPI.Domain.Interface;
+﻿using HotelReservationAPI.Application.Interface;
 using HotelReservationSystemAPI.Application.CommonResponse;
 using HotelReservationSystemAPI.Domain.Entities;
 using HotelReservationSystemAPI.Domain.Events;

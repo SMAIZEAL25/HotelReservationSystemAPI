@@ -11,6 +11,8 @@ namespace HotelReservationSystemAPI.Application.DTO_s
 
     public class UserRegisterDto
     {
+        public Guid Id { get; set; }
+
         [Required]
         public string FullName { get; set; } = string.Empty;
 
