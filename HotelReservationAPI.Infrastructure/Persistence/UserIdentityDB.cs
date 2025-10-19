@@ -36,11 +36,14 @@ namespace UserIdentity.Infrastructure.Persistence
                       .HasMaxLength(256)
                       .IsRequired();
             });
-        
-        // ==============================
-        // USER ENTITY CONFIGURATION
-        // ==============================
-        builder.Entity<User>(entity =>
+
+            // Global query filter for soft delete
+            builder.Entity<User>().HasQueryFilter(u => !u.IsDeleted);
+
+            // ==============================
+            // USER ENTITY CONFIGURATION
+            // ==============================
+            builder.Entity<User>(entity =>
             {
                 entity.ToTable("Users");
 

@@ -17,7 +17,8 @@ namespace HotelReservationSystemAPI.Domain.Entities
         public UserRole Role { get; private set; } = UserRole.Guest;
         public DateTime CreatedAt { get; private set; } = DateTime.UtcNow;
         public bool EmailConfirmed { get; private set; } = false;
-
+        public bool IsDeleted { get; private set; } = false;  // Soft delete flag
+        public DateTime? DeletedAt { get; private set; }  // Audit timestamp
         private User() { } // EF
 
         public static Result<UserCreationData> Create(
@@ -89,6 +90,26 @@ namespace HotelReservationSystemAPI.Domain.Entities
             PasswordValueObject = passwordResult.Value;
             PasswordHash = passwordResult.Value.HashedValue;
             return OperationResult.Success("Password changed successfully");
+        }
+
+        // Soft Deletion
+        public OperationResult SoftDelete()
+        {
+            if (IsDeleted)
+                return OperationResult.Failure("User already deleted.");
+            IsDeleted = true;
+            DeletedAt = DateTime.UtcNow;
+            return OperationResult.Success("User soft deleted successfully.");
+        }
+
+        // Recovery
+        public OperationResult Recover()
+        {
+            if (!IsDeleted)
+                return OperationResult.Failure("User not deleted.");
+            IsDeleted = false;
+            DeletedAt = null;
+            return OperationResult.Success("User recovered successfully.");
         }
     }
 

@@ -18,21 +18,21 @@ public class RegisterUserCommandHandler : IRequestHandler<RegisterUserCommand, A
 {
     private readonly UserManager<User> _userManager;
     private readonly RoleManager<Role> _roleManager;
-    private readonly IUserRepository _userRepository;  
+    private readonly IUserRepository _userRepository;
     private readonly ILogger<RegisterUserCommandHandler> _logger;
     private readonly IEmailService _emailService;
-    private readonly IEventStore _eventStore; 
-    private readonly IEventBus _eventBus;  
+    private readonly IEventStore _eventStore;
+    private readonly IEventBus _eventBus;
     private readonly IMediator _mediator;
     private readonly IDistributedCache _cache;
 
-    
-    private readonly Func<string, string> _hashFunction = password => password; 
+    // Password hasher as func for domain factory
+    private readonly Func<string, string> _hashFunction = password => password; // Placeholder
 
     public RegisterUserCommandHandler(
         UserManager<User> userManager,
         RoleManager<Role> roleManager,
-        IUserRepository userRepository,  
+        IUserRepository userRepository,
         ILogger<RegisterUserCommandHandler> logger,
         IEmailService emailService,
         IEventStore eventStore,
@@ -79,7 +79,7 @@ public class RegisterUserCommandHandler : IRequestHandler<RegisterUserCommand, A
         {
             _logger.LogInformation($"Role '{request.Role}' not found. Creating via command...");
             var roleCommand = new CreateRoleCommand(request.Role);
-            var roleResponse = await _mediator.Send(roleCommand);
+            var roleResponse = await _mediator.Send(roleCommand, cancellationToken);
             if (!roleResponse.IsSuccess)
             {
                 _logger.LogError("Failed to create role {Role}: {Error}", request.Role, roleResponse.Message);
@@ -100,30 +100,24 @@ public class RegisterUserCommandHandler : IRequestHandler<RegisterUserCommand, A
         var addRoleResult = await _userManager.AddToRoleAsync(user, request.Role);
         if (!addRoleResult.Succeeded)
         {
-            await _userManager.DeleteAsync(user); 
+            await _userManager.DeleteAsync(user); // Rollback
             var errors = string.Join(", ", addRoleResult.Errors.Select(e => e.Description));
             _logger.LogError("Role assignment failed for {Email}: {Errors}", request.Email, errors);
             return APIResponse<UserDto>.Fail(HttpStatusCode.BadRequest, $"Role assignment failed: {errors}");
         }
 
-        // 6. Email confirmation (part of flow)
-        var token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
-        var tokenResult = await _userManager.GenerateEmailConfirmationTokenAsync(user);  
-        if (!string.IsNullOrEmpty(tokenResult))
-        {
-            token = tokenResult;  
-        }
-
+        // 6. Email confirmation (part of flow – sends link, but confirmation is separate endpoint)
+        var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);  // Standard Identity token
         var confirmationLink = $"https://yourapi.com/api/users/confirm-email?email={user.Email}&token={token}";
-        await _emailService.SendConfirmationEmailAsync(user.Email, "Confirm Your Email", $"Please confirm your account: {confirmationLink}");  // Fixed: Match interface (to, subject, body)
+        await _emailService.SendConfirmationEmailAsync(user.Email, "Confirm Your Email", $"Please confirm your account: {confirmationLink}");
 
         _logger.LogInformation("Email confirmation link sent to {Email}", user.Email);
 
-        // 7. Events (align with snippet: MediatR + Custom Bus + Optional Store)
-        var domainEvent = creationResult.Value.DomainEvent; 
-        await _eventStore.SaveEventAsync(domainEvent);  
-        await _mediator.Publish(domainEvent, cancellationToken);  // MediatR handles INotification
-        _eventBus.Publish(domainEvent);  
+        // 7. Events (store → MediatR → bus)
+        var domainEvent = creationResult.Value.DomainEvent;
+        await _eventStore.SaveEventAsync(domainEvent);
+        await _mediator.Publish(domainEvent, cancellationToken);
+        _eventBus.Publish(domainEvent);
 
         // 8. Cache (email & name only)
         var cacheKey = $"user:{user.Id}";

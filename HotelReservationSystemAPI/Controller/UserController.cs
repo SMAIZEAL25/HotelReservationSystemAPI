@@ -8,46 +8,49 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using StackExchange.Redis;
 using System.Net;
 
 namespace HotelReservationSystemAPI.Controller
 {
     [ApiController]
-    [Route("api/roles")]
-    [Authorize(Roles = "SuperAdmin")] // RBAC
-    public class UserController : ControllerBase
+    [Route("api/users")]
+    [Authorize]
+    public class UsersController : ControllerBase
     {
-        private readonly UserService _userService;
-        private readonly EventStore _eventStore;
         private readonly IMediator _mediator;
+        private readonly IEventStore _eventStore;  // Abstraction for events
 
-        public UserController(UserService userService, EventStore eventStore, IMediator mediator)
+        public UsersController(IMediator mediator, IEventStore eventStore)
         {
-            _userService = userService;
-            _eventStore = eventStore;
             _mediator = mediator;
+            _eventStore = eventStore;
         }
 
-        [HttpGet("users/{id}/events")]
+        [HttpGet("{id}/events")]
+        [Authorize(Roles = "SuperAdmin")]
         public async Task<IActionResult> GetUserEvents(Guid id)
         {
-            var events = await _eventStore.GetEventsAsync<UserRegisteredEvent>(id);
+            var events = await _eventStore.GetEventsAsync<UserRegisteredEvent>(id);  // Direct call for events
             return Ok(events);
         }
 
-
-        [HttpPost]
-        public async Task<IActionResult> CreateRole([FromBody] CreateRoleCommand command)
+        [HttpGet("confirm-email")]
+        public async Task<IActionResult> ConfirmEmail([FromQuery] string email, [FromQuery] string token)
         {
-            var response = await _mediator.Send(command);
-            return response.IsSuccess
-                ? StatusCode((int)HttpStatusCode.Created, response)
-                : StatusCode((int)response.StatusCode, response);
+            var command = new ConfirmEmailCommand(email, token);  // Map query to command
+            var response = await _mediator.Send(command);  // → Handler (no repo direct call; handler uses UserManager + repo)
+            return response.IsSuccess ? Ok(response) : BadRequest(response);
         }
 
-        // this endpoint should use a mediator throung the command and handler to talk to the user service 
-        // remember for all endpoint in the service use implements ratelimiting conception 
-
-
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteUser(Guid id)
+        {
+            var command = new DeleteUserCommand(id);
+            var response = await _mediator.Send(command);  // → Handler → Repo SoftDeleteAsync
+            return response.IsSuccess ? NoContent() : BadRequest(response);
+        }
     }
+
 }
+

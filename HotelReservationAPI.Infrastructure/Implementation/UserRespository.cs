@@ -115,6 +115,69 @@ namespace HotelReservationSystemAPI.Application.Services
                 Role = user.Role.ToString()
             };
         }
+
+        public async Task SoftDeleteAsync(Guid userId)
+        {
+            try
+            {
+                var user = await _context.Users.FindAsync(userId);
+                if (user == null)
+                {
+                    _logger.LogWarning("User not found for soft delete: {UserId}", userId);
+                    return;
+                }
+
+                // Domain behavior
+                var result = user.SoftDelete();
+                if (!result.IsSuccess)
+                {
+                    _logger.LogError("Domain soft delete failed for {UserId}: {Error}", userId, result.Error);
+                    throw new InvalidOperationException(result.Error);
+                }
+
+                _context.Users.Update(user);
+                await _context.SaveChangesAsync();
+                _logger.LogInformation("User {UserId} soft deleted successfully.", userId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error soft deleting user {UserId}", userId);
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Recovers a soft-deleted user.
+        /// </summary>
+        public async Task RecoverUserAsync(Guid userId)
+        {
+            try
+            {
+                var user = await _context.Users.FindAsync(userId);
+                if (user == null)
+                {
+                    _logger.LogWarning("User not found for recovery: {UserId}", userId);
+                    return;
+                }
+
+                // Domain behavior
+                var result = user.Recover();
+                if (!result.IsSuccess)
+                {
+                    _logger.LogError("Domain recovery failed for {UserId}: {Error}", userId, result.Error);
+                    throw new InvalidOperationException(result.Error);
+                }
+
+                _context.Users.Update(user);
+                await _context.SaveChangesAsync();
+                _logger.LogInformation("User {UserId} recovered successfully.", userId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error recovering user {UserId}", userId);
+                throw;
+            }
+        }
     }
 }
 

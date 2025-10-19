@@ -1,4 +1,5 @@
 ﻿using HotelReservationAPI.Application.Interface;
+using HotelReservationAPI.Application.MiddleWare;
 using HotelReservationSystemAPI.Application.Commands;
 using HotelReservationSystemAPI.Application.CommonResponse;
 using HotelReservationSystemAPI.Application.DTO_s;
@@ -17,18 +18,18 @@ namespace HotelReservationSystemAPI.Application.CommandHandlers;
 public class LoginCommandHandler : IRequestHandler<LoginCommand, APIResponse<LoginResponseDto>>
 {
     private readonly UserManager<User> _userManager;
-    private readonly IUserRepository _userRepository;  // Added for domain persistence (e.g., refresh token update)
+    private readonly IUserRepository _userRepository;
     private readonly ITokenService _tokenService;
     private readonly RedisTokenBucketRateLimiter _rateLimiter;
-    private readonly IEventStore _eventStore;  // For optional persistence
-    private readonly IEventBus _eventBus;  // Custom bus
+    private readonly IEventStore _eventStore;
+    private readonly IEventBus _eventBus;
     private readonly IMediator _mediator;
-    private readonly IDistributedCache _cache;  // For user details caching
+    private readonly IDistributedCache _cache;
     private readonly ILogger<LoginCommandHandler> _logger;
 
     public LoginCommandHandler(
         UserManager<User> userManager,
-        IUserRepository userRepository,  // Injected
+        IUserRepository userRepository,
         ITokenService tokenService,
         RedisTokenBucketRateLimiter rateLimiter,
         IEventStore eventStore,
@@ -93,16 +94,16 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, APIResponse<Log
         var accessToken = _tokenService.GenerateAccessToken(user);
         var refreshToken = _tokenService.GenerateRefreshToken();
 
-        // 7. Update refresh token in domain entity via repo (align with snippet)
-        user.RefreshToken = refreshToken; // Assumes User has this prop
+        // 7. Update refresh token in domain entity via repo
+        user.RefreshToken = refreshToken;
         user.RefreshTokenExpiry = DateTime.UtcNow.AddDays(7);
-        await _userRepository.UpdateAsync(user);  // Use repo for domain persistence
+        await _userRepository.UpdateAsync(user);
 
-        // 8. Events (align with snippet: MediatR + Custom Bus + Optional Store)
+        // 8. Events
         var loginEvent = new UserLoggedInEvent(user.Id, user.Email);
-        await _eventStore.SaveEventAsync(loginEvent);  // Optional persistence
-        await _mediator.Publish(loginEvent, cancellationToken);  // MediatR handles INotification
-        _eventBus.Publish(loginEvent);  // Custom bus if needed
+        await _eventStore.SaveEventAsync(loginEvent);
+        await _mediator.Publish(loginEvent, cancellationToken);
+        _eventBus.Publish(loginEvent);
 
         // 9. Cache user details (email & name only)
         var cacheKey = $"user:{user.Id}";

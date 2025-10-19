@@ -18,9 +18,9 @@ namespace HotelReservationSystemAPI.Application.CommandHandlers
     public class ConfirmEmailCommandHandler : IRequestHandler<ConfirmEmailCommand, APIResponse<bool>>
     {
         private readonly UserManager<User> _userManager;
-        private readonly IUserRepository _userRepository;  // For update if needed
-        private readonly IEventStore _eventStore;  // Optional persistence
-        private readonly IEventBus _eventBus;  // Custom bus
+        private readonly IUserRepository _userRepository;
+        private readonly IEventStore _eventStore;
+        private readonly IEventBus _eventBus;
         private readonly IMediator _mediator;
         private readonly ILogger<ConfirmEmailCommandHandler> _logger;
 
@@ -57,18 +57,18 @@ namespace HotelReservationSystemAPI.Application.CommandHandlers
                 return APIResponse<bool>.Success(true, "Email already confirmed.");
             }
 
-            var isValidToken = await _userManager.ConfirmEmailAsync(user, request.Token);
-            if (!isValidToken.Succeeded)
+            var confirmResult = await _userManager.ConfirmEmailAsync(user, request.Token);
+            if (!confirmResult.Succeeded)
             {
                 _logger.LogWarning("Email confirmation failed: invalid token for {Email}", request.Email);
                 return APIResponse<bool>.Fail(HttpStatusCode.BadRequest, "Invalid confirmation token.");
             }
 
             // Update via domain behavior
-            var confirmResult = user.ConfirmEmail();  // Domain method
-            if (!confirmResult.IsSuccess)
+            var domainConfirmResult = user.ConfirmEmail();
+            if (!domainConfirmResult.IsSuccess)
             {
-                _logger.LogError("Domain confirmation failed for {Email}: {Error}", request.Email, confirmResult.Error);
+                _logger.LogError("Domain confirmation failed for {Email}: {Error}", request.Email, domainConfirmResult.Error);
                 return APIResponse<bool>.Fail(HttpStatusCode.InternalServerError, "Failed to confirm email.");
             }
 
@@ -80,11 +80,11 @@ namespace HotelReservationSystemAPI.Application.CommandHandlers
                 return APIResponse<bool>.Fail(HttpStatusCode.InternalServerError, "Failed to confirm email.");
             }
 
-            // Events: Store → MediatR → Bus
+            // Events
             var confirmEvent = new EmailConfirmedEvent(user.Id, user.Email);
-            await _eventStore.SaveEventAsync(confirmEvent);  // Optional persistence
-            await _mediator.Publish(confirmEvent, cancellationToken);  // Triggers handlers (e.g., logging)
-            _eventBus.Publish(confirmEvent);  // Custom bus for downstream
+            await _eventStore.SaveEventAsync(confirmEvent);
+            await _mediator.Publish(confirmEvent, cancellationToken);
+            _eventBus.Publish(confirmEvent);
 
             _logger.LogInformation("Email confirmed successfully for {Email}", request.Email);
             return APIResponse<bool>.Success(true, "Email confirmed successfully.");

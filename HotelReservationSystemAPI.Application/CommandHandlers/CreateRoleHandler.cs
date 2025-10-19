@@ -73,7 +73,7 @@ public class CreateRoleHandler : IRequestHandler<CreateRoleCommand, APIResponse<
         }
 
         var role = roleCreationData.Role;
-        var domainEvent = roleCreationData.DomainEvent;  // Assumes RoleCreatedEvent from factory
+        var domainEvent = roleCreationData.DomainEvent;
 
         // 4. Persist with Identity
         var identityResult = await _roleManager.CreateAsync(role);
