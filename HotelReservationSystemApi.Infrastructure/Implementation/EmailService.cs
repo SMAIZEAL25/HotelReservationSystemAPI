@@ -8,8 +8,8 @@ using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace HotelReservationSystemAPI.Infrastructure.Services
-{
+namespace HotelReservationSystemAPI.Infrastructure.Implementation;
+
     public class EmailService : IEmailService
     {
         private readonly IConfiguration _config;
@@ -55,4 +55,4 @@ namespace HotelReservationSystemAPI.Infrastructure.Services
             }
         }
     }
-}
+

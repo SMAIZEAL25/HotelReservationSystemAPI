@@ -1,5 +1,6 @@
 ﻿
 using HotelReservationAPI.Application.Interface;
+using HotelReservationSystemAPI.Domain.Events;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -16,19 +17,19 @@ namespace HotelReservationSystemAPI.Application.Interface
     // implementation of IEventBus.
     public class InMemoryEventBus : IEventBus
     {
-        private static readonly ConcurrentBag<Func<object, Task>> _subscribers = new();
+        private static readonly ConcurrentBag<Func<IDomainEvent, Task>> _subscribers = new();
 
-        public void Publish<TEvent>(TEvent @event)
+        public void Publish<TEvent>(TEvent @event) where TEvent : IDomainEvent
         {
             foreach (var subscriber in _subscribers)
             {
-                _ = subscriber.Invoke(@event);
+                _ = subscriber(@event);  // Fire-and-forget
             }
         }
 
-        public void Subscribe(Func<object, Task> handler)
+        public void Subscribe<TEvent>(Func<TEvent, Task> handler) where TEvent : IDomainEvent
         {
-            _subscribers.Add(handler);
+            _subscribers.Add(async (e) => await handler((TEvent)e));  // Cast to specific type
         }
     }
 }

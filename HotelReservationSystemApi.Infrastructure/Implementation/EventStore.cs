@@ -1,10 +1,13 @@
 ﻿using HotelReservationAPI.Application.Interface;
 using HotelReservationSystemAPI.Domain.Entities;
 using HotelReservationSystemAPI.Domain.Events;
+using HotelReservationSystemAPI.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
-using UserIdentity.Infrastructure.Persistence;
+
+
+namespace HotelReservationSystemAPI.Infrastructure.Implementation;
 
 public class EventStore : IEventStore
 {

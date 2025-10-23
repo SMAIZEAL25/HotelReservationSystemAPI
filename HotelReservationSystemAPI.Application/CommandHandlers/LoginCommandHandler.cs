@@ -1,5 +1,4 @@
 ﻿using HotelReservationAPI.Application.Interface;
-using HotelReservationAPI.Application.MiddleWare;
 using HotelReservationSystemAPI.Application.Commands;
 using HotelReservationSystemAPI.Application.CommonResponse;
 using HotelReservationSystemAPI.Application.DTO_s;
@@ -20,7 +19,7 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, APIResponse<Log
     private readonly UserManager<User> _userManager;
     private readonly IUserRepository _userRepository;
     private readonly ITokenService _tokenService;
-    private readonly RedisTokenBucketRateLimiter _rateLimiter;
+    private readonly IRateLimiter _rateLimiter;
     private readonly IEventStore _eventStore;
     private readonly IEventBus _eventBus;
     private readonly IMediator _mediator;
@@ -31,7 +30,7 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, APIResponse<Log
         UserManager<User> userManager,
         IUserRepository userRepository,
         ITokenService tokenService,
-        RedisTokenBucketRateLimiter rateLimiter,
+        IRateLimiter rateLimiter,
         IEventStore eventStore,
         IEventBus eventBus,
         IMediator mediator,
@@ -94,13 +93,19 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, APIResponse<Log
         var accessToken = _tokenService.GenerateAccessToken(user);
         var refreshToken = _tokenService.GenerateRefreshToken();
 
-        // 7. Update refresh token in domain entity via repo
-        user.RefreshToken = refreshToken;
-        user.RefreshTokenExpiry = DateTime.UtcNow.AddDays(7);
-        await _userRepository.UpdateAsync(user);
+        // 7. Update refresh token in domain entity via repo (use domain method for invariants)
+        var expiry = TimeSpan.FromDays(7);
+        var updateResult = user.UpdateRefreshToken(refreshToken, expiry);  // Fixed: Domain method
+        if (!updateResult.IsSuccess)
+        {
+            _logger.LogError("Domain refresh token update failed for {UserId}: {Error}", user.Id, updateResult.Error);
+            return APIResponse<LoginResponseDto>.Fail(HttpStatusCode.InternalServerError, "Failed to update refresh token.");
+        }
+
+        await _userRepository.UpdateAsync(user);  // Persist changes
 
         // 8. Events
-        var loginEvent = new UserLoggedInEvent(user.Id, user.Email);
+        var loginEvent = new UserLoggedInEvent(user.Id, user.Email ?? "");  
         await _eventStore.SaveEventAsync(loginEvent);
         await _mediator.Publish(loginEvent, cancellationToken);
         _eventBus.Publish(loginEvent);

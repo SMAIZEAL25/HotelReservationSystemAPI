@@ -10,6 +10,6 @@ namespace HotelReservationSystemAPI.Application.DTO_s
     {
         public string Name { get; set; } = string.Empty;
 
-        public static RoleDto FromRole(Role role) => new() { Name = role.Name };
+        public static RoleDto FromRole(Role role) => new() { Name = role.Name ?? "" };
     }
 }

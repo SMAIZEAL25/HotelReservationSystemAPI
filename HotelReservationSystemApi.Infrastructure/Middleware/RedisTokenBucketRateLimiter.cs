@@ -1,19 +1,15 @@
 ﻿
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Text.Json;
-using System.Threading.Tasks;
+using HotelReservationSystemAPI.Infrastructure.RedisCacheServie;
+using HotelReservationSystemAPI.Application.Interface;
 
-namespace HotelReservationAPI.Application.MiddleWare
+namespace HotelReservationSystemAPI.Infrastructure.MiddleWare
 {
     /// <summary>
     /// This ratelimiter class uses the token bucket alogrithm to thrott users base on their ip address and user id
     /// </summary>
-    public class RedisTokenBucketRateLimiter
+    public class RedisTokenBucketRateLimiter : IRateLimiter
     {
         private readonly RedisCacheService _cacheService;
         private readonly ILogger<RedisTokenBucketRateLimiter> _logger;

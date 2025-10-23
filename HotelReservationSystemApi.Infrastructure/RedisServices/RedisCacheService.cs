@@ -6,7 +6,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 
-namespace HotelReservationAPI.Infrastructure.TokenProvider
+namespace HotelReservationSystemAPI.Infrastructure.RedisCacheServie
 {
 
     // You can now inject RedisCacheService into your handlers or controllers.

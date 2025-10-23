@@ -35,7 +35,7 @@ public class Role : IdentityRole<Guid>
         var domainEvent = new RoleCreatedEvent(role.Id, role.Name!);
 
         var creationData = new RoleCreationData(role, domainEvent);
-        return Result<RoleCreationData>.Success(creationData, "Role created successfully");
+        return Result<RoleCreationData>.Success(creationData);
     }
 
     /// <summary>

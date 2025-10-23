@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 
-namespace UserIdentity.Infrastructure.Persistence
+namespace HotelReservationSystemAPI.Infrastructure.Persistence
 {
     public class UserIdentityDB : IdentityDbContext<User, Role, Guid>
     {
@@ -51,6 +51,15 @@ namespace UserIdentity.Infrastructure.Persistence
                 entity.HasIndex(u => u.Email).IsUnique();
                 entity.HasIndex(u => u.UserName).IsUnique();
                 entity.HasIndex(u => u.FullName);
+
+                entity.Property(u => u.RefreshToken)
+                .HasMaxLength(512)  // Token length
+                .IsRequired(false);
+
+                entity.Property(u => u.RefreshTokenExpiry)
+                      .IsRequired(false);
+
+                entity.HasIndex(u => u.RefreshTokenExpiry);
 
                 // Basic field constraints
                 entity.Property(u => u.FullName)

@@ -3,9 +3,9 @@ using HotelReservationSystemAPI.Application.DTO_s;
 using HotelReservationSystemAPI.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using UserIdentity.Infrastructure.Persistence;
+using HotelReservationSystemAPI.Infrastructure.Persistence;
 
-namespace HotelReservationSystemAPI.Application.Services
+namespace HotelReservationSystemAPI.Application.Implementation
 {
     public class UserRepository : IUserRepository
     {

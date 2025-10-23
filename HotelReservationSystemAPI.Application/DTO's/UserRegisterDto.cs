@@ -40,7 +40,7 @@ namespace HotelReservationSystemAPI.Application.DTO_s
         {
             Id = user.Id,
             FullName = user.FullName,
-            Email = user.Email,
+            Email = user.Email ?? "Email address mismatch",
             Role = user.Role.ToString(),
             EmailConfirmed = user.EmailConfirmed,
             CreatedAt = user.CreatedAt

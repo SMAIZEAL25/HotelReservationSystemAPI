@@ -18,7 +18,9 @@ namespace HotelReservationSystemAPI.Domain.Entities
         public DateTime CreatedAt { get; private set; } = DateTime.UtcNow;
         public bool EmailConfirmed { get; private set; } = false;
         public bool IsDeleted { get; private set; } = false;  // Soft delete flag
-        public DateTime? DeletedAt { get; private set; }  // Audit timestamp
+        public DateTime? DeletedAt { get; private set; }  // Audit timestamp        
+        public string? RefreshToken { get; private set; } // For refresh token storage
+        public DateTime? RefreshTokenExpiry { get; private set; } // Refresh token expiry
         private User() { } // EF
 
         public static Result<UserCreationData> Create(
@@ -63,6 +65,23 @@ namespace HotelReservationSystemAPI.Domain.Entities
                 return OperationResult.Failure("Email already confirmed");
             EmailConfirmed = true;
             return OperationResult.Success("Email confirmed successfully");
+        }
+
+        public OperationResult UpdateRefreshToken(string newToken, TimeSpan lifetime)
+        {
+            if (string.IsNullOrWhiteSpace(newToken))
+                return OperationResult.Failure("Refresh token cannot be empty.");
+
+            RefreshToken = newToken;
+            RefreshTokenExpiry = DateTime.UtcNow.Add(lifetime);
+            return OperationResult.Success("Refresh token updated successfully.");
+        }
+
+        public OperationResult RevokeRefreshToken()
+        {
+            RefreshToken = null;
+            RefreshTokenExpiry = null;
+            return OperationResult.Success("Refresh token revoked.");
         }
 
         public OperationResult UpdateProfile(string fullName, string email)

@@ -4,26 +4,21 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 	</PropertyGroup>
-	<ItemGroup>
-	  <Compile Remove="PasswordHasher\**" />
-	  <EmbeddedResource Remove="PasswordHasher\**" />
-	  <None Remove="PasswordHasher\**" />
-	</ItemGroup>
 
 	<ItemGroup>
 		<PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.0" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.0" />
-		<PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.0" />
+		
 		<PackageReference Include="StackExchange.Redis" Version="2.7.33" />
 		<PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.0" />
-		<PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.14.0" />
+		<PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.0.0" />
+		<!-- Updated stable -->
 		<PackageReference Include="MailKit" Version="4.7.1" />
 	</ItemGroup>
 
-
 	<ItemGroup>
-		<!-- ✅ Infrastructure references Domain and Application -->
-		<ProjectReference Include="..\HotelReservationSystemAPI.Domain\HotelReservationSystemAPI.Domain.csproj" />
+		<!-- ✅ Infrastructure references Application and Domain -->
 		<ProjectReference Include="..\HotelReservationSystemAPI.Application\HotelReservationSystemAPI.Application.csproj" />
+		<ProjectReference Include="..\HotelReservationSystemAPI.Domain\HotelReservationSystemAPI.Domain.csproj" />
 	</ItemGroup>
 </Project>

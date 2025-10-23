@@ -1,28 +1,28 @@
 using FluentValidation;
 using HotelReservationAPI.Application.Interface;
-using HotelReservationAPI.Application.MiddleWare;
+
 using HotelReservationAPI.Infrastructure.Implementation;
-using HotelReservationAPI.Infrastructure.TokenProvider;
+
 using HotelReservationSystemAPI.Application.Commands;
+using HotelReservationSystemAPI.Application.Implementation;
 using HotelReservationSystemAPI.Application.Interface;
-using HotelReservationSystemAPI.Application.Services;
 using HotelReservationSystemAPI.Domain.Entities;
 using HotelReservationSystemAPI.Domain.Events;
 using HotelReservationSystemAPI.Infrastructure.Implementation;
-using HotelReservationSystemAPI.Infrastructure.Services;
+using HotelReservationSystemAPI.Infrastructure.MiddleWare;
+using HotelReservationSystemAPI.Infrastructure.Persistence;
+using HotelReservationSystemAPI.Infrastructure.RedisCacheServie;
 using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Serilog;
-using System.Reflection;
 using System.Text;
 using System.Threading.RateLimiting;
-using UserIdentity.Infrastructure.Persistence;
+
+
 
 namespace HotelReservationSystemAPI.Api;  // Standardized namespace for API layer
 
@@ -147,11 +147,13 @@ public class Program
         // ------------------------------------------------------------
         // CQRS - MediatR Registration
         // ------------------------------------------------------------
-        builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblies(
+        builder.Services.AddMediatR(
             typeof(Program).Assembly,
             typeof(RegisterUserCommand).Assembly,
+            typeof(LoginUserCommand).Assembly,
+            typeof(LogoutUserCommand).Assembly,
             typeof(UserRegisteredEvent).Assembly
-        ));
+        );
 
         // ------------------------------------------------------------
         // FluentValidation (if using validators)
@@ -212,6 +214,7 @@ public class Program
             eventBus.Subscribe(@event =>
             {
                 Log.Information("Event published: {@Event}", @event);
+                return Task.CompletedTask;
             });
         }
 

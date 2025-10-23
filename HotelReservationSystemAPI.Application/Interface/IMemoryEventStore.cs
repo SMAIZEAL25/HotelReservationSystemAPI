@@ -1,5 +1,6 @@
 ﻿
 using HotelReservationAPI.Application.Interface;
+using HotelReservationSystemAPI.Domain.Events;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -11,19 +12,19 @@ namespace HotelReservationSystemAPI.Application.Interface
 {
     public class InMemoryEventStore : IEventStore
     {
-        private static readonly ConcurrentDictionary<Guid, List<object>> _store = new();
+        private static readonly ConcurrentDictionary<Guid, List<IDomainEvent>> _store = new();
 
-        public Task SaveEventAsync<TEvent>(TEvent @event) where TEvent : class
+        public Task SaveEventAsync<TEvent>(TEvent @event) where TEvent : IDomainEvent  
         {
-            var aggregateId = (Guid)@event.GetType().GetProperty("UserId")!.GetValue(@event)!;
+            var aggregateId = @event.AggregateId;  // Now safe via IDomainEvent
             if (!_store.ContainsKey(aggregateId))
-                _store[aggregateId] = new List<object>();
+                _store[aggregateId] = new List<IDomainEvent>();
 
             _store[aggregateId].Add(@event);
             return Task.CompletedTask;
         }
 
-        public Task<IEnumerable<TEvent>> GetEventsAsync<TEvent>(Guid aggregateId) where TEvent : class
+        public Task<IEnumerable<TEvent>> GetEventsAsync<TEvent>(Guid aggregateId) where TEvent : IDomainEvent  // Fixed: Matches IEventStore constraint
         {
             if (_store.TryGetValue(aggregateId, out var events))
             {

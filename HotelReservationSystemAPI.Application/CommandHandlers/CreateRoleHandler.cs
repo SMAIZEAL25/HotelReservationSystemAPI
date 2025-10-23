@@ -61,12 +61,12 @@ public class CreateRoleHandler : IRequestHandler<CreateRoleCommand, APIResponse<
         var creationResult = Role.Create(request.Name);
         if (!creationResult.IsSuccess)
         {
-            _logger.LogError("Domain validation failed for role {RoleName}: {Error}", request.Name, creationResult.Error);
-            return APIResponse<RoleDto>.Fail(HttpStatusCode.BadRequest, creationResult.Error);
+            _logger.LogError("Domain validation failed for role {RoleName}: {Error}", request.Name, creationResult.Error ?? "Unknown error");
+            return APIResponse<RoleDto>.Fail(HttpStatusCode.BadRequest, creationResult.Error ?? "Role validation failed");
         }
 
         var roleCreationData = creationResult.Value;
-        if (roleCreationData.Role == null)
+        if (roleCreationData.Role == null)  // Fixed: Explicit null check for dereference
         {
             _logger.LogError("Domain factory returned null Role for {RoleName}", request.Name);
             return APIResponse<RoleDto>.Fail(HttpStatusCode.InternalServerError, "Failed to create role data.");

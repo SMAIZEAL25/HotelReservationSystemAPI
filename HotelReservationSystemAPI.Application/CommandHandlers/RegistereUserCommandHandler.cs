@@ -68,11 +68,11 @@ public class RegisterUserCommandHandler : IRequestHandler<RegisterUserCommand, A
         var creationResult = User.Create(request.FullName, request.Email, request.Password, role, _hashFunction);
         if (!creationResult.IsSuccess)
         {
-            _logger.LogError("Domain validation failed for {Email}: {Error}", request.Email, creationResult.Error);
-            return APIResponse<UserDto>.Fail(HttpStatusCode.BadRequest, creationResult.Error);
+            _logger.LogError("Domain validation failed for {Email}: {Error}", request.Email, creationResult.Error ?? "Unknown error");
+            return APIResponse<UserDto>.Fail(HttpStatusCode.BadRequest, creationResult.Error ?? "Validation failed");
         }
 
-        var user = creationResult.Value.User;
+        var user = creationResult.Value.User!;
 
         // 3. Ensure role exists (via CQRS command)
         if (!await _roleManager.RoleExistsAsync(request.Role))
@@ -107,11 +107,11 @@ public class RegisterUserCommandHandler : IRequestHandler<RegisterUserCommand, A
         }
 
         // 6. Email confirmation (part of flow – sends link, but confirmation is separate endpoint)
-        var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);  // Standard Identity token
+        var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
         var confirmationLink = $"https://yourapi.com/api/users/confirm-email?email={user.Email}&token={token}";
-        await _emailService.SendConfirmationEmailAsync(user.Email, "Confirm Your Email", $"Please confirm your account: {confirmationLink}");
+        await _emailService.SendConfirmationEmailAsync(user.Email ?? "", "Confirm Your Email", $"Please confirm your account: {confirmationLink}");  // Fixed: ?? ""
 
-        _logger.LogInformation("Email confirmation link sent to {Email}", user.Email);
+        _logger.LogInformation("Email confirmation link sent to {Email}", user.Email ?? "unknown");
 
         // 7. Events (store → MediatR → bus)
         var domainEvent = creationResult.Value.DomainEvent;

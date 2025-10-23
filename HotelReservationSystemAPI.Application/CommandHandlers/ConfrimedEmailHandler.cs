@@ -81,7 +81,8 @@ namespace HotelReservationSystemAPI.Application.CommandHandlers
             }
 
             // Events
-            var confirmEvent = new EmailConfirmedEvent(user.Id, user.Email);
+            var confirmEvent = new EmailConfirmedEvent(user.Id, user.Email ?? "");  
+
             await _eventStore.SaveEventAsync(confirmEvent);
             await _mediator.Publish(confirmEvent, cancellationToken);
             _eventBus.Publish(confirmEvent);

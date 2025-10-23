@@ -6,8 +6,6 @@ using HotelReservationSystemAPI.Domain.Events;
 
 namespace HotelReservationSystemAPI.Domain.Entities
 {
-    public partial class User
-    {
         public class UserCreationResult
         {
             public bool IsSuccess { get; private set; }
@@ -39,7 +37,7 @@ namespace HotelReservationSystemAPI.Domain.Entities
         }
     }
 
-}
+
 
 
 
