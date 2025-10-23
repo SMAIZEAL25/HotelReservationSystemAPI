@@ -1,5 +1,4 @@
-﻿
-using HotelReservationSystemAPI.Domain.Events;
+﻿using HotelReservationSystemAPI.Domain.Events;
 using HotelReservationSystemAPI.Domain.ValueObject;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Caching.Distributed;
@@ -38,7 +37,7 @@ namespace HotelReservationSystemAPI.Domain.Entities
                 return Result<UserCreationData>.Failure(emailResult.Error ?? "Invalid email");
 
             var passwordResult = PasswordVO.Create(plainPassword, hashFunction);
-            if (!passwordResult.IsSuccess)
+            if (!passwordResult.IsSuccess || passwordResult.Value == null)
                 return Result<UserCreationData>.Failure(passwordResult.Error ?? "Invalid password");
 
             var user = new User
@@ -47,9 +46,9 @@ namespace HotelReservationSystemAPI.Domain.Entities
                 FullName = fullName,
                 UserName = email,
                 Email = email,
-                EmailValueObject = emailResult.Value,
-                PasswordValueObject = passwordResult.Value,
-                PasswordHash = passwordResult.Value.HashedValue,
+                EmailValueObject = emailResult.Value!,
+                PasswordValueObject = passwordResult.Value!,
+                PasswordHash = passwordResult.Value!.HashedValue, // <-- Add ! to suppress null warning
                 Role = role,
                 EmailConfirmed = false,
                 CreatedAt = DateTime.UtcNow
@@ -94,7 +93,7 @@ namespace HotelReservationSystemAPI.Domain.Entities
                 return OperationResult.Failure(emailResult.Error ?? "Invalid email");
 
             FullName = fullName;
-            EmailValueObject = emailResult.Value;
+            EmailValueObject = emailResult.Value!;
             Email = email;
             UserName = email;
             return OperationResult.Success("Profile updated successfully");
@@ -107,7 +106,7 @@ namespace HotelReservationSystemAPI.Domain.Entities
                 return OperationResult.Failure(passwordResult.Error ?? "Invalid password");
 
             PasswordValueObject = passwordResult.Value;
-            PasswordHash = passwordResult.Value.HashedValue;
+            PasswordHash = passwordResult.Value != null? passwordResult.Value.HashedValue : string.Empty;
             return OperationResult.Success("Password changed successfully");
         }
 
@@ -152,6 +151,11 @@ namespace HotelReservationSystemAPI.Domain.Entities
     }
 
 }
+
+
+
+
+
 
 
 

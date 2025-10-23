@@ -14,9 +14,9 @@ namespace HotelReservationSystemAPI.Application.Interface
     {
         private static readonly ConcurrentDictionary<Guid, List<IDomainEvent>> _store = new();
 
-        public Task SaveEventAsync<TEvent>(TEvent @event) where TEvent : IDomainEvent  
+        public Task SaveEventAsync<TEvent>(TEvent @event) where TEvent : IDomainEvent
         {
-            var aggregateId = @event.AggregateId;  // Now safe via IDomainEvent
+            var aggregateId = @event.AggregateId;  
             if (!_store.ContainsKey(aggregateId))
                 _store[aggregateId] = new List<IDomainEvent>();
 
@@ -24,7 +24,7 @@ namespace HotelReservationSystemAPI.Application.Interface
             return Task.CompletedTask;
         }
 
-        public Task<IEnumerable<TEvent>> GetEventsAsync<TEvent>(Guid aggregateId) where TEvent : IDomainEvent  // Fixed: Matches IEventStore constraint
+        public Task<IEnumerable<TEvent>> GetEventsAsync<TEvent>(Guid aggregateId) where TEvent : IDomainEvent
         {
             if (_store.TryGetValue(aggregateId, out var events))
             {

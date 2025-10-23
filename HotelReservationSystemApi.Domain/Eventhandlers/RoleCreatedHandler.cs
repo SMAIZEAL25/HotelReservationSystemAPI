@@ -21,7 +21,7 @@ namespace HotelReservationSystemAPI.Domain.Eventhandlers
         public Task Handle(RoleCreatedEvent notification, CancellationToken cancellationToken)
         {
             _logger.LogInformation("✅ Role created event received: {RoleId} | {RoleName} | {OccurredAt}",
-                notification.RoleId, notification.Name, notification.OccurredAt);
+                notification.AggregateId, notification.Name, notification.OccurredAt);
 
             // Example: sync with external identity provider or audit log
             return Task.CompletedTask;

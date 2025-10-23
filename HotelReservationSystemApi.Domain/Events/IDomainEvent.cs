@@ -11,5 +11,6 @@ namespace HotelReservationSystemAPI.Domain.Events
     {
         Guid EventId { get; }
         DateTime OccurredAt { get; }
+        Guid AggregateId { get; }  // Added: ID of the aggregate root (e.g., UserId for User events)
     }
 }

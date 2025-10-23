@@ -11,13 +11,13 @@ namespace HotelReservationSystemAPI.Domain.Events
     {
         public Guid EventId { get; } = Guid.NewGuid();
         public DateTime OccurredAt { get; } = DateTime.UtcNow;
-        public Guid UserId { get; }
+        public Guid AggregateId { get; }  
         public string Email { get; }
 
         public UserLoggedInEvent(Guid userId, string email)
         {
-            UserId = userId;
-            Email = email;
+            AggregateId = userId;
+            Email = email;   //?? throw new ArgumentNullException(nameof(email));
         }
     }
 }

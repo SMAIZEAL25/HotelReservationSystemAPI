@@ -22,7 +22,7 @@ namespace HotelReservationSystemAPI.Domain.Eventhandlers
         public Task Handle(EmailConfirmedEvent notification, CancellationToken cancellationToken)
         {
             _logger.LogInformation("Handling EmailConfirmedEvent: EventId={EventId}, OccurredAt={OccurredAt}, UserId={UserId}, Email={Email}",
-                notification.EventId, notification.OccurredAt, notification.UserId, notification.Email);
+                notification.EventId, notification.OccurredAt, notification.AggregateId, notification.Email);
 
             // Side effect: e.g., SendWelcomeEmail(notification.Email)
             // Or notify other contexts via _eventBus

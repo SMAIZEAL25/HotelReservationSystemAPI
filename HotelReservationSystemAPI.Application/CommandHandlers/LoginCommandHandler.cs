@@ -121,7 +121,7 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, APIResponse<Log
         var response = new LoginResponseDto
         {
             FullName = user.FullName,
-            Email = user.Email,
+            Email = user.Email!,
             Role = role,
             AccessToken = accessToken,
             RefreshToken = refreshToken

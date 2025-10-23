@@ -35,7 +35,10 @@ public class RoleService
     // Non-CQRS example: Get role events (for auditing)
     public async Task<APIResponse<IEnumerable<RoleCreatedEvent>>> GetRoleEventsAsync(string roleName)
     {
-        var events = await _eventStore.GetEventsAsync<RoleCreatedEvent>(roleName); // Assume GetByAggregateId
+        if (!Guid.TryParse(roleName, out var aggregateId))
+            return APIResponse<IEnumerable<RoleCreatedEvent>>.Fail(HttpStatusCode.BadRequest, "Invalid role identifier.");
+
+        var events = await _eventStore.GetEventsAsync<RoleCreatedEvent>(aggregateId); // Use Guid as required by IEventStore
         if (!events.Any())
             return APIResponse<IEnumerable<RoleCreatedEvent>>.Fail(HttpStatusCode.NotFound, "No events found.");
 

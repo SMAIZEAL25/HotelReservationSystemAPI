@@ -5,13 +5,13 @@
     {
         public Guid EventId { get; } = Guid.NewGuid();
         public DateTime OccurredAt { get; } = DateTime.UtcNow;
-        public Guid UserId { get; }
+        public Guid AggregateId { get; }  // Added: UserId as aggregate ID
         public string Email { get; }
 
         public UserRegisteredEvent(Guid userId, string email)
         {
-            UserId = userId;
-            Email = email;
+            AggregateId = userId;
+            Email = email; //?? throw new ArgumentNullException(nameof(email));
         }
     }
 }

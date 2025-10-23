@@ -72,7 +72,14 @@ public class RegisterUserCommandHandler : IRequestHandler<RegisterUserCommand, A
             return APIResponse<UserDto>.Fail(HttpStatusCode.BadRequest, creationResult.Error ?? "Validation failed");
         }
 
-        var user = creationResult.Value.User!;
+        var userCreationData = creationResult.Value;
+        if (userCreationData == null || userCreationData.User == null)
+        {
+            _logger.LogError("User creation data is null for {Email}", request.Email);
+            return APIResponse<UserDto>.Fail(HttpStatusCode.InternalServerError, "User creation failed due to unexpected error.");
+        }
+
+        var user = userCreationData.User;
 
         // 3. Ensure role exists (via CQRS command)
         if (!await _roleManager.RoleExistsAsync(request.Role))
@@ -114,7 +121,7 @@ public class RegisterUserCommandHandler : IRequestHandler<RegisterUserCommand, A
         _logger.LogInformation("Email confirmation link sent to {Email}", user.Email ?? "unknown");
 
         // 7. Events (store → MediatR → bus)
-        var domainEvent = creationResult.Value.DomainEvent;
+        var domainEvent = creationResult.Value!.DomainEvent;
         await _eventStore.SaveEventAsync(domainEvent);
         await _mediator.Publish(domainEvent, cancellationToken);
         _eventBus.Publish(domainEvent);

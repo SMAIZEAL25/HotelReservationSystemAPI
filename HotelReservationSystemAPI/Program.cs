@@ -1,239 +1,83 @@
-using FluentValidation;
 using HotelReservationAPI.Application.Interface;
-
-using HotelReservationAPI.Infrastructure.Implementation;
-
-using HotelReservationSystemAPI.Application.Commands;
-using HotelReservationSystemAPI.Application.Implementation;
-using HotelReservationSystemAPI.Application.Interface;
-using HotelReservationSystemAPI.Domain.Entities;
+using HotelReservationSystemAPI.Api.Extensions;  // For API-specific extensions
+using HotelReservationSystemAPI.Application.Extensions;  // For Application extensions>
 using HotelReservationSystemAPI.Domain.Events;
-using HotelReservationSystemAPI.Infrastructure.Implementation;
-using HotelReservationSystemAPI.Infrastructure.MiddleWare;
-using HotelReservationSystemAPI.Infrastructure.Persistence;
-using HotelReservationSystemAPI.Infrastructure.RedisCacheServie;
-using MediatR;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
+using HotelReservationSystemAPI.Extensions;
+using HotelReservationSystemAPI.Infrastructure.Extensions;  // For Infrastructure extensions
 using Microsoft.OpenApi.Models;
 using Serilog;
-using System.Text;
-using System.Threading.RateLimiting;
 
+var builder = WebApplication.CreateBuilder(args);
 
+// ------------------------------------------------------------
+// Serilog Configuration
+// ------------------------------------------------------------
+Log.Logger = new LoggerConfiguration()
+    .ReadFrom.Configuration(builder.Configuration)
+    .Enrich.FromLogContext()
+    .WriteTo.Console()
+    .WriteTo.File("logs/log-.txt", rollingInterval: RollingInterval.Day)
+    .CreateLogger();
 
-namespace HotelReservationSystemAPI.Api;  // Standardized namespace for API layer
+builder.Host.UseSerilog();
 
-public class Program
+// ------------------------------------------------------------
+// Core Services
+// ------------------------------------------------------------
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(c =>
 {
-    public static void Main(string[] args)
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "Hotel Reservation System API", Version = "v1" });
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
-        var builder = WebApplication.CreateBuilder(args);
-
-        // ------------------------------------------------------------
-        // Serilog Configuration
-        // ------------------------------------------------------------
-        Log.Logger = new LoggerConfiguration()
-            .ReadFrom.Configuration(builder.Configuration)
-            .Enrich.FromLogContext()
-            .WriteTo.Console()
-            .WriteTo.File("logs/log-.txt", rollingInterval: RollingInterval.Day)
-            .CreateLogger();
-
-        builder.Host.UseSerilog();
-
-        // ------------------------------------------------------------
-        // Add services to the container
-        // ------------------------------------------------------------
-        builder.Services.AddControllers();
-        builder.Services.AddEndpointsApiExplorer();
-        builder.Services.AddSwaggerGen(c =>
+        Description = "JWT Authorization header using the Bearer scheme.",
+        Name = "Authorization",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.ApiKey,
+        Scheme = "Bearer"
+    });
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
         {
-            c.SwaggerDoc("v1", new OpenApiInfo { Title = "Hotel Reservation System API", Version = "v1" });
-            c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+            new OpenApiSecurityScheme
             {
-                Description = "JWT Authorization header using the Bearer scheme.",
-                Name = "Authorization",
-                In = ParameterLocation.Header,
-                Type = SecuritySchemeType.ApiKey,
-                Scheme = "Bearer"
-            });
-            c.AddSecurityRequirement(new OpenApiSecurityRequirement
-            {
+                Reference = new OpenApiReference
                 {
-                    new OpenApiSecurityScheme
-                    {
-                        Reference = new OpenApiReference
-                        {
-                            Type = ReferenceType.SecurityScheme,
-                            Id = "Bearer"
-                        }
-                    },
-                    Array.Empty<string>()
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
                 }
-            });
-        });
-
-        // ------------------------------------------------------------
-        // Database Context
-        // ------------------------------------------------------------
-        builder.Services.AddDbContext<UserIdentityDB>(options =>
-            options.UseSqlServer(builder.Configuration.GetConnectionString("HotelReservationAuthDb")));
-
-        // ------------------------------------------------------------
-        // Redis Cache Configuration
-        // ------------------------------------------------------------
-        builder.Services.AddStackExchangeRedisCache(options =>
-        {
-            options.Configuration = builder.Configuration.GetConnectionString("Redis");
-        });
-
-        // ------------------------------------------------------------
-        // Identity Configuration
-        // ------------------------------------------------------------
-        builder.Services.AddIdentity<User, Role>(options =>
-        {
-            // Password requirements
-            options.Password.RequireDigit = true;
-            options.Password.RequiredLength = 8;
-            options.Password.RequireNonAlphanumeric = false;
-            options.Password.RequireUppercase = true;
-            options.Password.RequireLowercase = true;
-
-            // Lockout settings
-            options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
-            options.Lockout.MaxFailedAccessAttempts = 5;
-            options.Lockout.AllowedForNewUsers = true;
-
-            // User settings
-            options.User.RequireUniqueEmail = true;
-        })
-        .AddEntityFrameworkStores<UserIdentityDB>()
-        .AddDefaultTokenProviders();
-
-        // ------------------------------------------------------------
-        // JWT Authentication
-        // ------------------------------------------------------------
-        var jwtKey = builder.Configuration["Jwt:Key"] ?? throw new InvalidOperationException("JWT Key is missing");
-        var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? throw new InvalidOperationException("JWT Issuer is missing");
-        var jwtAudience = builder.Configuration["Jwt:Audience"] ?? throw new InvalidOperationException("JWT Audience is missing");
-
-        builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-            .AddJwtBearer(options =>
-            {
-                options.TokenValidationParameters = new TokenValidationParameters
-                {
-                    ValidateIssuer = true,
-                    ValidateAudience = true,
-                    ValidateLifetime = true,
-                    ValidateIssuerSigningKey = true,
-                    ValidIssuer = jwtIssuer,
-                    ValidAudience = jwtAudience,
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
-                };
-            });
-
-        // ------------------------------------------------------------
-        // Authorization Policies
-        // ------------------------------------------------------------
-        builder.Services.AddAuthorization(options =>
-        {
-            options.AddPolicy("RequireAdminRole", policy => policy.RequireRole("SuperAdmin", "HotelAdmin"));
-            options.AddPolicy("RequireGuestRole", policy => policy.RequireRole("Guest"));
-        });
-
-        // ------------------------------------------------------------
-        // CQRS - MediatR Registration
-        // ------------------------------------------------------------
-        builder.Services.AddMediatR(
-            typeof(Program).Assembly,
-            typeof(RegisterUserCommand).Assembly,
-            typeof(LoginUserCommand).Assembly,
-            typeof(LogoutUserCommand).Assembly,
-            typeof(UserRegisteredEvent).Assembly
-        );
-
-        // ------------------------------------------------------------
-        // FluentValidation (if using validators)
-        // ------------------------------------------------------------
-        builder.Services.AddValidatorsFromAssembly(typeof(Program).Assembly);
-
-        // ------------------------------------------------------------
-        // Repository and Services Registration (No Duplicates)
-        // ------------------------------------------------------------
-        builder.Services.AddScoped<IUserRepository, UserRepository>();
-        builder.Services.AddScoped<IEventStore, EventStore>();
-        builder.Services.AddScoped<IEmailService, EmailService>();
-        builder.Services.AddSingleton<IEventBus, InMemoryEventBus>();
-        builder.Services.AddSingleton<IEventStore, InMemoryEventStore>();  
-        builder.Services.AddScoped<ITokenService, TokenService>();
-        builder.Services.AddScoped<RedisTokenBucketRateLimiter>();
-        builder.Services.AddScoped<UserService>();
-        builder.Services.AddScoped<RoleService>();
-        builder.Services.AddScoped<RedisCacheService>();
-
-        // ------------------------------------------------------------
-        // Rate Limiting (Custom RedisTokenBucketRateLimiter)
-        // ------------------------------------------------------------
-        builder.Services.AddRateLimiter(options =>
-        {
-            options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
-            {
-                var userId = context.User?.Claims.FirstOrDefault(c => c.Type == "sub" || c.Type == "UserId")?.Value;
-                var ipAddress = context.Connection.RemoteIpAddress?.ToString() ?? "unknown-ip";
-                var partitionKey = !string.IsNullOrEmpty(userId) ? $"user:{userId}" : $"ip:{ipAddress}";
-
-                return RateLimitPartition.GetFixedWindowLimiter(partitionKey, _ => new FixedWindowRateLimiterOptions
-                {
-                    AutoReplenishment = true,
-                    PermitLimit = 5,
-                    Window = TimeSpan.FromMinutes(1)
-                });
-            });
-
-            options.OnRejected = async (context, token) =>
-            {
-                context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
-                await context.HttpContext.Response.WriteAsync("Too many requests. Please try again later.");
-            };
-        });
-
-        // ------------------------------------------------------------
-        // Build Application
-        // ------------------------------------------------------------
-        var app = builder.Build();
-
-        // ------------------------------------------------------------
-        // Event Bus Subscription (Use Scoped Service for Better Practice)
-        // ------------------------------------------------------------
-        using (var scope = app.Services.CreateScope())
-        {
-            var eventBus = scope.ServiceProvider.GetRequiredService<IEventBus>();
-            eventBus.Subscribe(@event =>
-            {
-                Log.Information("Event published: {@Event}", @event);
-                return Task.CompletedTask;
-            });
+            },
+            Array.Empty<string>()
         }
+    });
+});
 
-        // ------------------------------------------------------------
-        // Configure Middleware Pipeline
-        // ------------------------------------------------------------
-        if (app.Environment.IsDevelopment())
-        {
-            app.UseSwagger();
-            app.UseSwaggerUI();
-        }
+// ------------------------------------------------------------
+// Layer-Specific Extensions (Modular Configuration)
+// ------------------------------------------------------------
+builder.Services.AddApplicationServices(builder.Configuration);  // CQRS, MediatR, Validators
+builder.Services.AddInfrastructureServices(builder.Configuration);  // DB, Redis, Identity
+builder.Services.AddApiServices(builder.Configuration);  // Auth, Rate Limiting, Swagger
 
-        app.UseSerilogRequestLogging();
-        app.UseRateLimiter();
-        app.UseHttpsRedirection();
-        app.UseAuthentication();
-        app.UseAuthorization();
-        app.MapControllers();
+var app = builder.Build();
 
-        app.Run();
-    }
+// ------------------------------------------------------------
+// Event Bus Subscription (Scoped for Best Practice)
+// ------------------------------------------------------------
+using (var scope = app.Services.CreateScope())
+{
+    var eventBus = scope.ServiceProvider.GetRequiredService<IEventBus>();
+    eventBus.Subscribe<IDomainEvent>(async (IDomainEvent @event) =>
+    {
+        Log.Information("Event published: {@Event}", @event);
+        await Task.CompletedTask;
+    });
 }
+
+// ------------------------------------------------------------
+// Configure Middleware Pipeline
+// ------------------------------------------------------------
+app.ConfigurePipeline(app.Environment);
+
+app.Run();

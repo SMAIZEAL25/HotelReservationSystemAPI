@@ -22,7 +22,7 @@ namespace HotelReservationSystemAPI.Domain.Eventhandlers
         public Task Handle(UserDeletedEvent notification, CancellationToken cancellationToken)
         {
             _logger.LogInformation("Handling UserDeletedEvent: EventId={EventId}, OccurredAt={OccurredAt}, UserId={UserId}, Email={Email}",
-                notification.EventId, notification.OccurredAt, notification.UserId, notification.Email);
+                notification.EventId, notification.OccurredAt, notification.AggregateId, notification.Email);
 
             // Pure domain side effect: e.g., update related aggregates (no infra)
             // (Side effects like email/cache now in command handler for orchestration)

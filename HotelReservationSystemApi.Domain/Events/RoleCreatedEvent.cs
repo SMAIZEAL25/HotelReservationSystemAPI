@@ -8,13 +8,13 @@ namespace HotelReservationSystemAPI.Domain.Entities
     {
         public Guid EventId { get; } = Guid.NewGuid();
         public DateTime OccurredAt { get; } = DateTime.UtcNow;
-        public Guid RoleId { get; }
+        public Guid AggregateId { get; }  // RoleId as aggregate ID for event sourcing
         public string Name { get; }
 
         public RoleCreatedEvent(Guid roleId, string name)
         {
-            RoleId = roleId;
-            Name = name;
+            AggregateId = roleId;  // Set from ctor for correlation
+            Name = name ?? throw new ArgumentNullException(nameof(name));  // Null-safe
         }
     }
 }

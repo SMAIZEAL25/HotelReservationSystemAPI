@@ -66,9 +66,9 @@ public class CreateRoleHandler : IRequestHandler<CreateRoleCommand, APIResponse<
         }
 
         var roleCreationData = creationResult.Value;
-        if (roleCreationData.Role == null)  // Fixed: Explicit null check for dereference
+        if (roleCreationData == null || roleCreationData.Role == null)  // Fixed: Explicit null check for RoleCreationData and Role
         {
-            _logger.LogError("Domain factory returned null Role for {RoleName}", request.Name);
+            _logger.LogError("Domain factory returned null RoleCreationData or Role for {RoleName}", request.Name);
             return APIResponse<RoleDto>.Fail(HttpStatusCode.InternalServerError, "Failed to create role data.");
         }
 

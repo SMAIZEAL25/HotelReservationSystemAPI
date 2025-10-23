@@ -35,7 +35,7 @@ namespace HotelReservationSystemAPI.Infrastructure.Implementation
             if (!emailResult.IsSuccess)
                 return APIResponse<LoginResponseDto>.Fail(HttpStatusCode.BadRequest, emailResult.Error ?? "Invalid email format");
 
-            var user = await _userManager.FindByEmailAsync(emailResult.Value.Value);  // Fixed: Value.Value (Result.Value is EmailVO, EmailVO.Value is string)
+            var user = await _userManager.FindByEmailAsync(emailResult.Value!.Value);  // Fixed: Value.Value (Result.Value is EmailVO, EmailVO.Value is string)
             if (user == null)
             {
                 _logger.LogWarning("User not found for {Email}", loginDto.Email);
@@ -57,7 +57,7 @@ namespace HotelReservationSystemAPI.Infrastructure.Implementation
             var response = new LoginResponseDto
             {
                 FullName = user.FullName,
-                Email = user.Email,
+                Email = user.Email!,
                 Role = user.Role.ToString(),  // Ensure string conversion
                 AccessToken = accessToken,
                 RefreshToken = refreshToken

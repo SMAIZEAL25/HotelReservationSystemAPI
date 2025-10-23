@@ -68,7 +68,7 @@ namespace HotelReservationSystemAPI.Application.Implementation
                 {
                     Id = u.Id,
                     FullName = u.FullName,
-                    Email = u.Email,
+                    Email = u.Email!,
                     Role = u.Role.ToString()
                 })
                 .ToListAsync();
@@ -111,7 +111,7 @@ namespace HotelReservationSystemAPI.Application.Implementation
             {
                 Id = user.Id,
                 FullName = user.FullName,
-                Email = user.Email,
+                Email = user.Email!,
                 Role = user.Role.ToString()
             };
         }
