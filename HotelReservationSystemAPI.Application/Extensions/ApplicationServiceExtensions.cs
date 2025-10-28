@@ -1,4 +1,5 @@
 ﻿using FluentValidation;
+using HotelReservationSystemAPI.Application.Services;
 using MediatR;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Configuration;
@@ -12,22 +13,21 @@ public static class ApplicationServiceExtensions
 {
     public static IServiceCollection AddApplicationServices(this IServiceCollection services, IConfiguration config)
     {
-        // MediatR CQRS
+        // ✅ MediatR CQRS setup (for v11)
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblies(
-             typeof(ApplicationServiceExtensions).Assembly,
-             typeof(Program).Assembly
-         ));
+            typeof(ApplicationServiceExtensions).Assembly
+        ));
 
-        // FluentValidation (auto-discover validators)
+        // ✅ FluentValidation (auto-discover validators)
         services.AddValidatorsFromAssembly(typeof(ApplicationServiceExtensions).Assembly);
 
-        // AutoMapper (if using – add profiles)
+        // ✅ AutoMapper (if using – add profiles)
         services.AddAutoMapper(typeof(ApplicationServiceExtensions).Assembly);
 
-        // Application Services (abstract or Application-only)
-        services.AddScoped<UserService>();  
-        services.AddScoped<RoleService>();  
-        services.AddScoped<AuthenticationService>();  
+        // ✅ Application Services
+        services.AddScoped<UserService>();
+        services.AddScoped<RoleService>();
+        services.AddScoped<AuthenticationService>();
 
         return services;
     }

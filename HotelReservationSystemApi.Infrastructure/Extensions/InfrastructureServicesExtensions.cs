@@ -62,7 +62,7 @@ public static class InfrastructureServiceExtensions
         services.AddSingleton<IEventBus, InMemoryEventBus>();
         services.AddSingleton<IEventStore, InMemoryEventStore>();  
         services.AddScoped<ITokenService, TokenService>();
-        services.AddScoped<RedisTokenBucketRateLimiter>();
+        services.AddScoped<IRateLimiter,RedisTokenBucketRateLimiter>();
 
         // Rate Limiting (Fixed: Full options)
         services.AddRateLimiter(options =>

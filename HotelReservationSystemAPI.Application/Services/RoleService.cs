@@ -8,7 +8,7 @@ using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using System.Net;
 
-namespace HotelReservationSystemAPI.Infrastructure.Implementation;
+namespace HotelReservationSystemAPI.Application.Services;
 
 public class RoleService
 {

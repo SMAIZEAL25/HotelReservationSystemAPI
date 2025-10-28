@@ -15,7 +15,7 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using System.Threading.Tasks;
 
-namespace HotelReservationAPI.Infrastructure.Implementation
+namespace HotelReservationSystemAPI.Application.Services
 {
     public class UserService
     {
