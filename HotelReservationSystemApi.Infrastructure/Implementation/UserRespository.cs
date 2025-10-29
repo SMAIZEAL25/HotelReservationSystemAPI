@@ -66,7 +66,7 @@ namespace HotelReservationSystemAPI.Application.Implementation
             return await _context.Users.AsNoTracking()
                 .Select(u => new UserRegisterDto
                 {
-                    Id = u.Id,
+                   
                     FullName = u.FullName,
                     Email = u.Email!,
                     Role = u.Role.ToString()
@@ -109,7 +109,7 @@ namespace HotelReservationSystemAPI.Application.Implementation
         {
             return new UserRegisterDto
             {
-                Id = user.Id,
+               
                 FullName = user.FullName,
                 Email = user.Email!,
                 Role = user.Role.ToString()
