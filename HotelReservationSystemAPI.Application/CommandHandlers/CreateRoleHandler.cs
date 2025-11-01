@@ -2,6 +2,7 @@
 using HotelReservationSystemAPI.Application.Commands;
 using HotelReservationSystemAPI.Application.CommonResponse;
 using HotelReservationSystemAPI.Application.DTO_s;
+using HotelReservationSystemAPI.Domain.Entities;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Caching.Distributed;
@@ -10,6 +11,8 @@ using System.Net;
 using System.Text.Json;
 
 namespace HotelReservationSystemAPI.Application.CommandHandlers;
+
+
 
 public class CreateRoleHandler : IRequestHandler<CreateRoleCommand, APIResponse<RoleDto>>
 {
@@ -40,61 +43,49 @@ public class CreateRoleHandler : IRequestHandler<CreateRoleCommand, APIResponse<
     {
         _logger.LogInformation("Attempting to create role {RoleName}", request.Name);
 
-        // 1. Check cache first
+        // Check cache
         var cached = await _cache.GetStringAsync($"role:{request.Name}");
         if (cached != null)
         {
             var cachedRole = JsonSerializer.Deserialize<Role>(cached);
-            _logger.LogInformation("Role {RoleName} retrieved from cache", request.Name);
             return APIResponse<RoleDto>.Success(RoleDto.FromRole(cachedRole!), "Role retrieved from cache");
         }
 
-        // 2. Check existence (Idempotency)
+        // Check existing role
         var existingRole = await _roleManager.FindByNameAsync(request.Name);
         if (existingRole != null)
-        {
-            _logger.LogWarning("Role {RoleName} already exists", request.Name);
             return APIResponse<RoleDto>.Fail(HttpStatusCode.Conflict, $"Role '{request.Name}' already exists");
-        }
 
-        // 3. Create via domain factory
+        //  Domain validation and creation
         var creationResult = Role.Create(request.Name);
         if (!creationResult.IsSuccess)
-        {
-            _logger.LogError("Domain validation failed for role {RoleName}: {Error}", request.Name, creationResult.Error ?? "Unknown error");
-            return APIResponse<RoleDto>.Fail(HttpStatusCode.BadRequest, creationResult.Error ?? "Role validation failed");
-        }
+            return APIResponse<RoleDto>.Fail(HttpStatusCode.BadRequest, creationResult.Error ?? "Invalid role");
 
-        var roleCreationData = creationResult.Value;
-        if (roleCreationData == null || roleCreationData.Role == null)  // Fixed: Explicit null check for RoleCreationData and Role
-        {
-            _logger.LogError("Domain factory returned null RoleCreationData or Role for {RoleName}", request.Name);
-            return APIResponse<RoleDto>.Fail(HttpStatusCode.InternalServerError, "Failed to create role data.");
-        }
+        var roleData = creationResult.Value;
+        if (roleData?.Role == null)
+            return APIResponse<RoleDto>.Fail(HttpStatusCode.InternalServerError, "Failed to create role data");
 
-        var role = roleCreationData.Role;
-        var domainEvent = roleCreationData.DomainEvent;
+        var role = roleData.Role;
+        var domainEvent = roleData.DomainEvent;
 
-        // 4. Persist with Identity
+        //  Persist in Identity
         var identityResult = await _roleManager.CreateAsync(role);
         if (!identityResult.Succeeded)
         {
             var errors = string.Join(", ", identityResult.Errors.Select(e => e.Description));
-            _logger.LogError("Identity role creation failed for {RoleName}: {Errors}", request.Name, errors);
             return APIResponse<RoleDto>.Fail(HttpStatusCode.BadRequest, errors);
         }
 
-        // 5. Cache
+        //  Cache
         await _cache.SetStringAsync($"role:{request.Name}", JsonSerializer.Serialize(role),
             new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(12) });
 
-        // 6. Events
+        //  Publish events
         await _eventStore.SaveEventAsync(domainEvent);
         await _mediator.Publish(domainEvent, cancellationToken);
         _eventBus.Publish(domainEvent);
 
         _logger.LogInformation("Role {RoleName} created successfully", request.Name);
-
         return APIResponse<RoleDto>.Success(RoleDto.FromRole(role), "Role created successfully");
     }
 }

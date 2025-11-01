@@ -10,4 +10,5 @@ public record RegisterUserCommand(
     string FullName,
     string Email,
     string Password,
+    string Phonenumber,
     string Role = "Guest") : IRequest<APIResponse<UserDto>>;

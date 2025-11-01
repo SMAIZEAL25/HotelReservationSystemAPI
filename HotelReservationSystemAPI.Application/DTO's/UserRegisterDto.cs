@@ -21,10 +21,13 @@ namespace HotelReservationSystemAPI.Application.DTO_s
         public string Email { get; set; } = string.Empty;
 
         [Required]
+        public string Phonenumber { get; set; } = string.Empty;
+
+        [Required]
         [MinLength(8)]
         public string Password { get; set; } = string.Empty;
 
-        public string Role { get; set; } = "Guest"; // Maps to UserRole enum
+        public string Role { get; set; } = "Guest"; 
     }
 
     public class UserDto

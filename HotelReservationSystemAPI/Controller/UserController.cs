@@ -27,22 +27,17 @@ namespace HotelReservationSystemAPI.Controller
         }
 
         [HttpGet("{id}/events")]
-        [Authorize(Roles = "SuperAdmin")]
+        [Authorize(Roles = "SuperAdmin" , Policy = "")]
         public async Task<IActionResult> GetUserEvents(Guid id)
         {
             var events = await _eventStore.GetEventsAsync<UserRegisteredEvent>(id);  // Direct call for events
             return Ok(events);
         }
 
-        [HttpGet("confirm-email")]
-        public async Task<IActionResult> ConfirmEmail([FromQuery] string email, [FromQuery] string token)
-        {
-            var command = new ConfirmEmailCommand(email, token);  // Map query to command
-            var response = await _mediator.Send(command);  // → Handler (no repo direct call; handler uses UserManager + repo)
-            return response.IsSuccess ? Ok(response) : BadRequest(response);
-        }
+       
 
         [HttpDelete("{id}")]
+        [Authorize (Roles = "SuperAdmin")]
         public async Task<IActionResult> DeleteUser(Guid id)
         {
             var command = new DeleteUserCommand(id);

@@ -27,7 +27,7 @@ public class RegisterUserCommandHandler : IRequestHandler<RegisterUserCommand, A
     private readonly IDistributedCache _cache;
 
     // Password hasher as func for domain factory
-    private readonly Func<string, string> _hashFunction = password => password; // Placeholder
+    private readonly Func<string, string> _hashFunction = password => password;
 
     public RegisterUserCommandHandler(
         UserManager<User> userManager,
@@ -63,8 +63,8 @@ public class RegisterUserCommandHandler : IRequestHandler<RegisterUserCommand, A
             return APIResponse<UserDto>.Fail(HttpStatusCode.Conflict, "Email is already registered.");
         }
 
-        // 2. Create via domain factory (ensures VO validation & invariants)
-        var role = Enum.Parse<UserRole>(request.Role, true);
+        // 2. Create via domain factory (validator already ensured VO, but double-check for safety)
+        var role = Enum.TryParse<UserRole>(request.Role, true, out var parsedRole) ? parsedRole : UserRole.Guest;  // Fallback if validator missed
         var creationResult = User.Create(request.FullName, request.Email, request.Password, role, _hashFunction);
         if (!creationResult.IsSuccess)
         {
@@ -72,14 +72,7 @@ public class RegisterUserCommandHandler : IRequestHandler<RegisterUserCommand, A
             return APIResponse<UserDto>.Fail(HttpStatusCode.BadRequest, creationResult.Error ?? "Validation failed");
         }
 
-        var userCreationData = creationResult.Value;
-        if (userCreationData == null || userCreationData.User == null)
-        {
-            _logger.LogError("User creation data is null for {Email}", request.Email);
-            return APIResponse<UserDto>.Fail(HttpStatusCode.InternalServerError, "User creation failed due to unexpected error.");
-        }
-
-        var user = userCreationData.User;
+        var user = creationResult.Value.User!;
 
         // 3. Ensure role exists (via CQRS command)
         if (!await _roleManager.RoleExistsAsync(request.Role))
@@ -94,7 +87,7 @@ public class RegisterUserCommandHandler : IRequestHandler<RegisterUserCommand, A
             }
         }
 
-        // 4. Persist with Identity (hashing already in factory)
+        // 4.Persist with Identity(hashing already in factory)
         var identityResult = await _userManager.CreateAsync(user, request.Password);
         if (!identityResult.Succeeded)
         {
@@ -116,7 +109,7 @@ public class RegisterUserCommandHandler : IRequestHandler<RegisterUserCommand, A
         // 6. Email confirmation (part of flow – sends link, but confirmation is separate endpoint)
         var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
         var confirmationLink = $"https://yourapi.com/api/users/confirm-email?email={user.Email}&token={token}";
-        await _emailService.SendConfirmationEmailAsync(user.Email ?? "", "Confirm Your Email", $"Please confirm your account: {confirmationLink}");  // Fixed: ?? ""
+        await _emailService.SendConfirmationEmailAsync(user.Email ?? "", "Confirm Your Email", $"Please confirm your account: {confirmationLink}");
 
         _logger.LogInformation("Email confirmation link sent to {Email}", user.Email ?? "unknown");
 
@@ -130,10 +123,97 @@ public class RegisterUserCommandHandler : IRequestHandler<RegisterUserCommand, A
         var cacheKey = $"user:{user.Id}";
         var userCacheData = new { Email = user.Email, FullName = user.FullName };
         await _cache.SetStringAsync(cacheKey, JsonSerializer.Serialize(userCacheData),
-            new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(24) });
+                    new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(24) });
 
         _logger.LogInformation("User {Email} registered successfully with role {Role}", user.Email, user.Role);
 
         return APIResponse<UserDto>.Success(UserDto.FromUser(user), "User registered successfully. Please confirm your email.");
     }
 }
+
+//    public async Task<APIResponse<UserDto>> Handle(RegisterUserCommand request, CancellationToken cancellationToken)
+//    {
+//        _logger.LogInformation("Attempting to register new user with email {Email}", request.Email);
+
+//        // 1. Check if user exists (Idempotency)
+//        var existingUser = await _userManager.FindByEmailAsync(request.Email);
+//        if (existingUser != null)
+//        {
+//            _logger.LogWarning("Email {Email} is already registered.", request.Email);
+//            return APIResponse<UserDto>.Fail(HttpStatusCode.Conflict, "Email is already registered.");
+//        }
+
+//        // 2. Create via domain factory (ensures VO validation & invariants)
+//        var role = Enum.Parse<UserRole>(request.Role, true);
+//        var creationResult = User.Create(request.FullName, request.Email, request.Password, role, _hashFunction);
+//        if (!creationResult.IsSuccess)
+//        {
+//            _logger.LogError("Domain validation failed for {Email}: {Error}", request.Email, creationResult.Error ?? "Unknown error");
+//            return APIResponse<UserDto>.Fail(HttpStatusCode.BadRequest, creationResult.Error ?? "Validation failed");
+//        }
+
+//        var userCreationData = creationResult.Value;
+//        if (userCreationData == null || userCreationData.User == null)
+//        {
+//            _logger.LogError("User creation data is null for {Email}", request.Email);
+//            return APIResponse<UserDto>.Fail(HttpStatusCode.InternalServerError, "User creation failed due to unexpected error.");
+//        }
+
+//        var user = userCreationData.User;
+
+//        // 3. Ensure role exists (via CQRS command)
+//        if (!await _roleManager.RoleExistsAsync(request.Role))
+//        {
+//            _logger.LogInformation($"Role '{request.Role}' not found. Creating via command...");
+//            var roleCommand = new CreateRoleCommand(request.Role);
+//            var roleResponse = await _mediator.Send(roleCommand, cancellationToken);
+//            if (!roleResponse.IsSuccess)
+//            {
+//                _logger.LogError("Failed to create role {Role}: {Error}", request.Role, roleResponse.Message);
+//                return APIResponse<UserDto>.Fail(HttpStatusCode.BadRequest, $"Failed to create role: {roleResponse.Message}");
+//            }
+//        }
+
+//        // 4. Persist with Identity (hashing already in factory)
+//        var identityResult = await _userManager.CreateAsync(user, request.Password);
+//        if (!identityResult.Succeeded)
+//        {
+//            var errors = string.Join(", ", identityResult.Errors.Select(e => e.Description));
+//            _logger.LogError("Identity creation failed for {Email}: {Errors}", request.Email, errors);
+//            return APIResponse<UserDto>.Fail(HttpStatusCode.BadRequest, $"User creation failed: {errors}");
+//        }
+
+//        // 5. Assign role
+//        var addRoleResult = await _userManager.AddToRoleAsync(user, request.Role);
+//        if (!addRoleResult.Succeeded)
+//        {
+//            await _userManager.DeleteAsync(user); // Rollback
+//            var errors = string.Join(", ", addRoleResult.Errors.Select(e => e.Description));
+//            _logger.LogError("Role assignment failed for {Email}: {Errors}", request.Email, errors);
+//            return APIResponse<UserDto>.Fail(HttpStatusCode.BadRequest, $"Role assignment failed: {errors}");
+//        }
+
+//        // 6. Email confirmation (part of flow – sends link, but confirmation is separate endpoint)
+//        var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+//        var confirmationLink = $"https://yourapi.com/api/users/confirm-email?email={user.Email}&token={token}";
+//        await _emailService.SendConfirmationEmailAsync(user.Email ?? "", "Confirm Your Email", $"Please confirm your account: {confirmationLink}");  
+
+//        _logger.LogInformation("Email confirmation link sent to {Email}", user.Email ?? "unknown");
+
+//        // 7. Events (store → MediatR → bus)
+//        var domainEvent = creationResult.Value!.DomainEvent;
+//        await _eventStore.SaveEventAsync(domainEvent);
+//        await _mediator.Publish(domainEvent, cancellationToken);
+//        _eventBus.Publish(domainEvent);
+
+//        // 8. Cache (email & name only)
+//        var cacheKey = $"user:{user.Id}";
+//        var userCacheData = new { Email = user.Email, FullName = user.FullName };
+//        await _cache.SetStringAsync(cacheKey, JsonSerializer.Serialize(userCacheData),
+//            new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(24) });
+
+//        _logger.LogInformation("User {Email} registered successfully with role {Role}", user.Email, user.Role);
+
+//        return APIResponse<UserDto>.Success(UserDto.FromUser(user), "User registered successfully. Please confirm your email.");
+//    }
+//}

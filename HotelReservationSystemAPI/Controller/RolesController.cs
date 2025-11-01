@@ -7,7 +7,6 @@ namespace HotelReservationSystemAPI.Controller
 {
     [ApiController]
     [Route("api/roles")]
-    [Authorize(Roles = "SuperAdmin")]  // RBAC for admin only
     public class RolesController : ControllerBase
     {
         private readonly IMediator _mediator;
@@ -18,12 +17,24 @@ namespace HotelReservationSystemAPI.Controller
         }
 
         [HttpPost]
+        [Authorize(Policy = "RequireAdminOrHigher")]  // Policy: SuperAdmin or HotelAdmin
         public async Task<IActionResult> CreateRole([FromBody] CreateRoleCommand command)
         {
-            var response = await _mediator.Send(command);  // → Handler (uses RoleManager + repo if needed)
-            return response.IsSuccess ? CreatedAtAction(nameof(CreateRole), response) : BadRequest(response);
+            var response = await _mediator.Send(command);
+            return response.IsSuccess
+                ? CreatedAtAction(nameof(CreateRole), response)
+                : BadRequest(response);
+        }
+
+        [HttpPost("assign")]
+        [Authorize(Policy = "RequireSuperAdmin")]  // Policy: SuperAdmin only (strict)
+        public async Task<IActionResult> AssignRole([FromBody] AssignRoleCommand command)
+        {
+            var response = await _mediator.Send(command);
+            return response.IsSuccess
+                ? Ok(response)
+                : BadRequest(response);
         }
     }
-
 }
 

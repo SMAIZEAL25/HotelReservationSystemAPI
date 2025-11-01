@@ -1,6 +1,7 @@
 ﻿using HotelReservationSystemAPI.Domain.Entities;
 using HotelReservationSystemAPI.Domain.ValueObject;
 using Microsoft.AspNetCore.Identity;
+using System.Text.Json;
 using System.Xml.Linq;
 
 public class Role : IdentityRole<Guid>
@@ -9,7 +10,15 @@ public class Role : IdentityRole<Guid>
     public DateTime CreatedAt { get; private set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; private set; }
 
-    // EF Core private constructor
+    public string PermissionsJson { get; private set; } = "[]"; // JSON string for EF
+
+    public List<string> Permissions
+    {
+        get => JsonSerializer.Deserialize<List<string>>(PermissionsJson) ?? new List<string>();
+        private set => PermissionsJson = JsonSerializer.Serialize(value ?? new List<string>());  // Fixed: Null-safe serialization
+    }
+
+    // EF private constructor
     private Role() { }
 
     private Role(string name, string description)
@@ -20,10 +29,18 @@ public class Role : IdentityRole<Guid>
         Description = description;
         CreatedAt = DateTime.UtcNow;
         ConcurrencyStamp = Guid.NewGuid().ToString();
+        // Default permissions based on role
+        Permissions = name switch
+        {
+            "Guest" => new List<string> { "read:profile" },
+            "HotelAdmin" => new List<string> { "read:profile", "write:booking", "read:users" },
+            "SuperAdmin" => new List<string> { "*" },
+            _ => new List<string>()
+        };
     }
 
     /// <summary>
-    /// Creates a new role and returns both the Role entity and a domain event.
+    /// Factory method to create a new Role entity and domain event.
     /// </summary>
     public static Result<RoleCreationData> Create(string roleName, string description = "")
     {
@@ -32,14 +49,13 @@ public class Role : IdentityRole<Guid>
             return Result<RoleCreationData>.Failure(roleValueResult.Message ?? "Invalid role name");
 
         var role = new Role(roleName, description);
-        var domainEvent = new RoleCreatedEvent(role.Id, role.Name!);
-
+        var domainEvent = new RoleCreatedEvent(role.Id, role.Name);
         var creationData = new RoleCreationData(role, domainEvent);
         return Result<RoleCreationData>.Success(creationData);
     }
 
     /// <summary>
-    /// Updates role name and description with validation.
+    /// Updates the role’s name and description with validation.
     /// </summary>
     public OperationResult Update(string roleName, string description)
     {
@@ -51,8 +67,24 @@ public class Role : IdentityRole<Guid>
         NormalizedName = roleName.ToUpperInvariant();
         Description = description;
         UpdatedAt = DateTime.UtcNow;
-
         return OperationResult.Success("Role updated successfully");
+    }
+
+    /// <summary>
+    /// Adds a permission if it doesn’t already exist.
+    /// </summary>
+    public void AddPermission(string permission)
+    {
+        if (!Permissions.Contains(permission))
+            Permissions.Add(permission);
+    }
+
+    /// <summary>
+    /// Removes a permission from the role.
+    /// </summary>
+    public void RemovePermission(string permission)
+    {
+        Permissions.Remove(permission);
     }
 }
 

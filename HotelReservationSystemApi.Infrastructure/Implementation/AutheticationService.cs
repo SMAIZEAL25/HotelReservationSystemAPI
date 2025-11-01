@@ -59,7 +59,7 @@ namespace HotelReservationSystemAPI.Infrastructure.Implementation
                 FullName = user.FullName,
                 Email = user.Email!,
                 Role = user.Role.ToString(),  // Ensure string conversion
-                AccessToken = accessToken,
+                AccessToken = await accessToken,
                 RefreshToken = refreshToken
             };
 

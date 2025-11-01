@@ -1,4 +1,6 @@
 ﻿using FluentValidation;
+using HotelReservationSystemAPI.Application.Behaviors;
+using HotelReservationSystemAPI.Application.CommandHandlers.HandlerValidators;
 using HotelReservationSystemAPI.Application.Services;
 using MediatR;
 using Microsoft.AspNetCore.Authentication;
@@ -20,6 +22,12 @@ public static class ApplicationServiceExtensions
 
         // ✅ FluentValidation (auto-discover validators)
         services.AddValidatorsFromAssembly(typeof(ApplicationServiceExtensions).Assembly);
+        // ... (existing AddMediatR)
+
+        services.AddValidatorsFromAssembly(typeof(RegisterUserCommandValidator).Assembly);  // Discovers all validators in Application
+
+        // Add pipeline behavior for validation
+        services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));  // Runs validators before handlers
 
         // ✅ AutoMapper (if using – add profiles)
         services.AddAutoMapper(typeof(ApplicationServiceExtensions).Assembly);

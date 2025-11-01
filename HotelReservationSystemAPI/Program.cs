@@ -1,9 +1,9 @@
 using HotelReservationAPI.Application.Interface;
-using HotelReservationSystemAPI.Api.Extensions;  // For API-specific extensions
-using HotelReservationSystemAPI.Application.Extensions;  // For Application extensions>
+using HotelReservationSystemAPI.Api.Extensions;  
+using HotelReservationSystemAPI.Application.Extensions;  
 using HotelReservationSystemAPI.Domain.Events;
 using HotelReservationSystemAPI.Extensions;
-using HotelReservationSystemAPI.Infrastructure.Extensions;  // For Infrastructure extensions
+using HotelReservationSystemAPI.Infrastructure.Extensions;  
 using Microsoft.OpenApi.Models;
 using Serilog;
 
@@ -60,6 +60,23 @@ builder.Services.AddApplicationServices(builder.Configuration);  // CQRS, Mediat
 builder.Services.AddInfrastructureServices(builder.Configuration);  // DB, Redis, Identity
 builder.Services.AddApiServices(builder.Configuration);  // Auth, Rate Limiting, Swagger
 
+// Auauthorization poicy for Guest hotel
+builder.Services.AddAuthorization(options =>
+{
+    // Role-based (existing)
+    options.AddPolicy("RequireGuest", policy => policy.RequireRole("Guest"));
+    options.AddPolicy("RequireHotelAdmin", policy => policy.RequireRole("HotelAdmin"));
+    options.AddPolicy("RequireSuperAdmin", policy => policy.RequireRole("SuperAdmin"));
+    options.AddPolicy("RequireAdminOrHigher", policy => policy.RequireRole("SuperAdmin"));
+
+    // Permission-based (checks claims)
+    options.AddPolicy("RequireReadProfile", policy => policy.RequireClaim("Permission", "read:profile"));
+    options.AddPolicy("RequireWriteBooking", policy => policy.RequireClaim("Permission", "write:booking"));
+    options.AddPolicy("RequireReadUsers", policy => policy.RequireClaim("Permission", "read:users"));
+    options.AddPolicy("RequireAllPermissions", policy => policy.RequireClaim("Permission", "*"));
+});
+
+
 var app = builder.Build();
 
 // ------------------------------------------------------------
@@ -79,5 +96,7 @@ using (var scope = app.Services.CreateScope())
 // Configure Middleware Pipeline
 // ------------------------------------------------------------
 app.ConfigurePipeline(app.Environment);
+
+app.UseAuthorization();
 
 app.Run();

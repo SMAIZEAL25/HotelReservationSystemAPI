@@ -2,6 +2,7 @@
 using HotelReservationSystemAPI.Domain.Events;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 
 
 namespace HotelReservationSystemAPI.Infrastructure.Persistence
@@ -98,30 +99,36 @@ namespace HotelReservationSystemAPI.Infrastructure.Persistence
                       .IsRequired();
             });
 
-            // ==============================
-            // ROLE ENTITY CONFIGURATION
-            // ==============================
+            // Role Configuration
             builder.Entity<Role>(entity =>
             {
                 entity.ToTable("Roles");
 
-                // Index for fast lookup
+                // Indexes
                 entity.HasIndex(r => r.Name).IsUnique();
                 entity.HasIndex(r => r.NormalizedName).IsUnique();
 
-                // Field constraints
+                // Field definitions
                 entity.Property(r => r.Name)
                       .HasMaxLength(100)
                       .IsRequired();
+
                 entity.Property(r => r.Description)
                       .HasMaxLength(512);
+
                 entity.Property(r => r.CreatedAt)
                       .HasDefaultValueSql("GETUTCDATE()");
+
                 entity.Property(r => r.UpdatedAt)
                       .IsRequired(false);
 
-                // Seed roles with fixed GUIDs and dates (use fixed dates for migration reproducibility)
-                var now = new DateTime(2025, 10, 12);  // Current date for seeding
+                // Permissions as JSON
+                entity.Property(r => r.PermissionsJson)
+                      .HasColumnType("nvarchar(max)")  // SQL Server; "jsonb" for Postgres
+                      .IsRequired(false);
+
+                // Seed roles (Fixed: Set PermissionsJson as serialized string)
+                var now = new DateTime(2025, 10, 12);
                 entity.HasData(
                     new
                     {
@@ -130,7 +137,8 @@ namespace HotelReservationSystemAPI.Infrastructure.Persistence
                         NormalizedName = "GUEST",
                         Description = "Default user role",
                         CreatedAt = now,
-                        ConcurrencyStamp = "fixed-concurrency-stamp-guest"
+                        ConcurrencyStamp = "fixed-concurrency-stamp-guest",
+                        PermissionsJson = JsonSerializer.Serialize(new List<string> { "read:profile" })  // Fixed: JSON string
                     },
                     new
                     {
@@ -139,7 +147,8 @@ namespace HotelReservationSystemAPI.Infrastructure.Persistence
                         NormalizedName = "HOTELADMIN",
                         Description = "Administrator for hotel branch",
                         CreatedAt = now,
-                        ConcurrencyStamp = "fixed-concurrency-stamp-hoteladmin"
+                        ConcurrencyStamp = "fixed-concurrency-stamp-hoteladmin",
+                        PermissionsJson = JsonSerializer.Serialize(new List<string> { "read:profile", "write:booking", "read:users" })  // Fixed: JSON
                     },
                     new
                     {
@@ -148,10 +157,65 @@ namespace HotelReservationSystemAPI.Infrastructure.Persistence
                         NormalizedName = "SUPERADMIN",
                         Description = "Global administrator with all permissions",
                         CreatedAt = now,
-                        ConcurrencyStamp = "fixed-concurrency-stamp-superadmin"
+                        ConcurrencyStamp = "fixed-concurrency-stamp-superadmin",
+                        PermissionsJson = JsonSerializer.Serialize(new List<string> { "*" })  // Fixed: JSON
                     }
                 );
             });
+            // ==============================
+            // ROLE ENTITY CONFIGURATION
+            // ==============================
+            //builder.Entity<Role>(entity =>
+            //{
+            //    entity.ToTable("Roles");
+
+            //    // Index for fast lookup
+            //    entity.HasIndex(r => r.Name).IsUnique();
+            //    entity.HasIndex(r => r.NormalizedName).IsUnique();
+
+            //    // Field constraints
+            //    entity.Property(r => r.Name)
+            //          .HasMaxLength(100)
+            //          .IsRequired();
+            //    entity.Property(r => r.Description)
+            //          .HasMaxLength(512);
+            //    entity.Property(r => r.CreatedAt)
+            //          .HasDefaultValueSql("GETUTCDATE()");
+            //    entity.Property(r => r.UpdatedAt)
+            //          .IsRequired(false);
+
+            //    // Seed roles with fixed GUIDs and dates (use fixed dates for migration reproducibility)
+            //    var now = new DateTime(2025, 10, 12);  // Current date for seeding
+            //    entity.HasData(
+            //        new
+            //        {
+            //            Id = new Guid("844eb56d-ea3a-4f71-abd5-3f648ed9d61b"),
+            //            Name = "Guest",
+            //            NormalizedName = "GUEST",
+            //            Description = "Default user role",
+            //            CreatedAt = now,
+            //            ConcurrencyStamp = "fixed-concurrency-stamp-guest"
+            //        },
+            //        new
+            //        {
+            //            Id = new Guid("a1ea0823-516d-4441-9a40-16e8b7649171"),
+            //            Name = "HotelAdmin",
+            //            NormalizedName = "HOTELADMIN",
+            //            Description = "Administrator for hotel branch",
+            //            CreatedAt = now,
+            //            ConcurrencyStamp = "fixed-concurrency-stamp-hoteladmin"
+            //        },
+            //        new
+            //        {
+            //            Id = new Guid("34f40151-388b-434f-8b34-910ef9c6098b"),
+            //            Name = "SuperAdmin",
+            //            NormalizedName = "SUPERADMIN",
+            //            Description = "Global administrator with all permissions",
+            //            CreatedAt = now,
+            //            ConcurrencyStamp = "fixed-concurrency-stamp-superadmin"
+            //        }
+            //    );
+            //});
         }
     }
 }

@@ -9,7 +9,7 @@ namespace HotelReservationSystemAPI.Application.Interface
 {
     public interface ITokenService
     {
-        string GenerateAccessToken(User user);
+        Task<string> GenerateAccessToken(User user);
         string GenerateRefreshToken();
     }
 }

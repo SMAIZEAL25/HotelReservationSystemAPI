@@ -123,7 +123,7 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, APIResponse<Log
             FullName = user.FullName,
             Email = user.Email!,
             Role = role,
-            AccessToken = accessToken,
+            AccessToken = await accessToken,
             RefreshToken = refreshToken
         };
 
