@@ -1,46 +1,40 @@
-﻿using HotelReservationSystemAPI.Domain.Entities;
+﻿using HotelReservationSystemAPI.Domain.Domain.Entities;
+using HotelReservationSystemAPI.Domain.Entities;
 using HotelReservationSystemAPI.Domain.ValueObject;
 using Microsoft.AspNetCore.Identity;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json;
 using System.Xml.Linq;
 
 public class Role : IdentityRole<Guid>
 {
-    public string Description { get; private set; } = string.Empty;
-    public DateTime CreatedAt { get; private set; } = DateTime.UtcNow;
-    public DateTime? UpdatedAt { get; private set; }
+    public string Description { get; protected set; } = string.Empty;
+    public DateTime CreatedAt { get; protected set; } = DateTime.UtcNow;
+    public DateTime? UpdatedAt { get; protected set; }
 
-    public string PermissionsJson { get; private set; } = "[]"; // JSON string for EF
+    // Navigation: Role → RolePermissions (one-to-many)
+    public virtual ICollection<RolePermission> RolePermissions { get; private set; } = new List<RolePermission>();
 
-    public List<string> Permissions
-    {
-        get => JsonSerializer.Deserialize<List<string>>(PermissionsJson) ?? new List<string>();
-        private set => PermissionsJson = JsonSerializer.Serialize(value ?? new List<string>());  // Fixed: Null-safe serialization
-    }
+    // Read-only projection of permissions
+    [NotMapped]
+    public List<string> Permissions => RolePermissions.Select(rp => rp.Permission).ToList();
 
-    // EF private constructor
+    // EF constructor (must be protected or public)
     private Role() { }
 
-    private Role(string name, string description)
+    protected Role(string name, string description)
     {
         Id = Guid.NewGuid();
         Name = name;
         NormalizedName = name.ToUpperInvariant();
         Description = description;
-        CreatedAt = DateTime.UtcNow;
+        CreatedAt = DateTime.UtcNow; 
+        UpdatedAt = DateTime.UtcNow;
         ConcurrencyStamp = Guid.NewGuid().ToString();
-        // Default permissions based on role
-        Permissions = name switch
-        {
-            "Guest" => new List<string> { "read:profile" },
-            "HotelAdmin" => new List<string> { "read:profile", "write:booking", "read:users" },
-            "SuperAdmin" => new List<string> { "*" },
-            _ => new List<string>()
-        };
     }
 
     /// <summary>
-    /// Factory method to create a new Role entity and domain event.
+    /// Factory method to create a new role entity and domain event.
     /// </summary>
     public static Result<RoleCreationData> Create(string roleName, string description = "")
     {
@@ -54,9 +48,41 @@ public class Role : IdentityRole<Guid>
         return Result<RoleCreationData>.Success(creationData);
     }
 
-    /// <summary>
+    
+    /// Adds a permission (creates RolePermission entity).
+    
+    public OperationResult AddPermission(string permission)
+    {
+        if (string.IsNullOrWhiteSpace(permission))
+            return OperationResult.Failure("Permission cannot be empty");
+
+        if (Permissions.Contains(permission))
+            return OperationResult.Failure("Permission already exists");
+
+        var rolePermissionResult = RolePermission.Create(Id, permission);
+        if (!rolePermissionResult.IsSuccess)
+            return OperationResult.Failure(rolePermissionResult.Error);
+
+        RolePermissions.Add(rolePermissionResult.Value);
+        return OperationResult.Success("Permission added successfully");
+    }
+
+   
+    /// Removes a permission from the role.
+  
+    public OperationResult RemovePermission(string permission)
+    {
+        var rolePermission = RolePermissions.FirstOrDefault(rp => rp.Permission == permission);
+        if (rolePermission == null)
+            return OperationResult.Failure("Permission not found");
+
+        RolePermissions.Remove(rolePermission);
+        return OperationResult.Success("Permission removed successfully");
+    }
+
+    
     /// Updates the role’s name and description with validation.
-    /// </summary>
+    
     public OperationResult Update(string roleName, string description)
     {
         var roleValueResult = RoleValue.Create(roleName);
@@ -69,24 +95,10 @@ public class Role : IdentityRole<Guid>
         UpdatedAt = DateTime.UtcNow;
         return OperationResult.Success("Role updated successfully");
     }
-
-    /// <summary>
-    /// Adds a permission if it doesn’t already exist.
-    /// </summary>
-    public void AddPermission(string permission)
-    {
-        if (!Permissions.Contains(permission))
-            Permissions.Add(permission);
-    }
-
-    /// <summary>
-    /// Removes a permission from the role.
-    /// </summary>
-    public void RemovePermission(string permission)
-    {
-        Permissions.Remove(permission);
-    }
 }
+
+
+/// Wrapper for returning both role and its domain event.
 
 public class RoleCreationData
 {
@@ -99,3 +111,4 @@ public class RoleCreationData
         DomainEvent = domainEvent;
     }
 }
+
