@@ -8,8 +8,8 @@ using System.Xml.Linq;
 
 public class Role : IdentityRole<Guid>
 {
-    public string Description { get; protected set; } = string.Empty;
-    public DateTime CreatedAt { get; protected set; } = DateTime.UtcNow;
+    public string Description { get;  set; } = string.Empty;
+    public DateTime CreatedAt { get;  set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; protected set; }
 
     // Navigation: Role → RolePermissions (one-to-many)
@@ -20,7 +20,7 @@ public class Role : IdentityRole<Guid>
     public List<string> Permissions => RolePermissions.Select(rp => rp.Permission).ToList();
 
     // EF constructor (must be protected or public)
-    private Role() { }
+    public Role() { }
 
     protected Role(string name, string description)
     {
@@ -33,9 +33,9 @@ public class Role : IdentityRole<Guid>
         ConcurrencyStamp = Guid.NewGuid().ToString();
     }
 
-    /// <summary>
+    
     /// Factory method to create a new role entity and domain event.
-    /// </summary>
+    
     public static Result<RoleCreationData> Create(string roleName, string description = "")
     {
         var roleValueResult = RoleValue.Create(roleName);

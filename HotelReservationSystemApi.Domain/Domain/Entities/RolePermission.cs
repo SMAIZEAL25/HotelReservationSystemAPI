@@ -9,11 +9,10 @@ namespace HotelReservationSystemAPI.Domain.Domain.Entities
 {
     public class RolePermission : Entity
     {
-        public Guid RoleId { get; private set; }  // FK to Role.Id
-        public string Permission { get; private set; } = string.Empty;  // e.g., "read:profile"
-
-        // Navigation
-        public Role Role { get; private set; } = null!;  // EF navigation
+        public Guid RoleId { get; private set; } 
+        public string Permission { get; private set; } = string.Empty; 
+        
+        public Role Role { get; set; } = null!;  
 
         // EF private constructor
         private RolePermission() { }

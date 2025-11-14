@@ -4,6 +4,7 @@ using HotelReservationSystemAPI.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HotelReservationSystemApi.Infrastructure.Migrations
 {
     [DbContext(typeof(UserIdentityDB))]
-    partial class UserIdentityDBModelSnapshot : ModelSnapshot
+    [Migration("20251112093846_RolePermissionSeeding")]
+    partial class RolePermissionSeeding
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
